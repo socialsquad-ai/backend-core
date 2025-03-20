@@ -27,7 +27,7 @@ def get_context_api_id():
     return context_api_id.get()
 
 
-def get_context_json_post_payload():
+def get_request_json_post_payload():
     return context_json_post_payload.get()
 
 

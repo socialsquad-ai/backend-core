@@ -2,7 +2,7 @@ from functools import wraps
 from controller.cerebrus import CustomValidator
 from logger.logging import LoggerUtil
 from utils.exceptions import CustomBadRequest
-from utils.contextvar import get_context_json_post_payload
+from utils.contextvar import get_request_json_post_payload
 
 
 def validate_post_payload(payload_validation_schema: dict):
@@ -13,7 +13,7 @@ def validate_post_payload(payload_validation_schema: dict):
             is_validated = False
             v = None
             try:
-                post_payload = get_context_json_post_payload()
+                post_payload = get_request_json_post_payload()
                 v = CustomValidator(
                     schema=payload_validation_schema,
                     allow_unknown=True,
