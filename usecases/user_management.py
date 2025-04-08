@@ -27,11 +27,11 @@ class UserManagement:
         user = User.get_by_pk(user_id)
         if not user:
             return "User not found", None, None
-        return "", user[0].get_details(), None
+        return "", {"user": user[0].get_details()}, None
 
     @staticmethod
     def get_users(request: Request):
         users = User.get_all_users()
         if not users:
             return "No users found", None, None
-        return "", [user.get_details() for user in users], None
+        return "", {"users": [user.get_details() for user in users]}, None
