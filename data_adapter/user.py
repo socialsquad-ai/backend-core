@@ -16,11 +16,11 @@ class User(BaseModel):
 
     @classmethod
     def get_by_email(cls, email):
-        return cls.select_query().where(cls.email == email)
+        return cls.select_query().where(cls.email == email).limit(1)
 
     @classmethod
     def get_by_pk(cls, pk):
-        return cls.select_query().where(cls.id == pk).limit(1)[0]
+        return cls.select_query().where(cls.id == pk).limit(1)
 
     @classmethod
     def get_or_create_user(cls, email, timezone, password):

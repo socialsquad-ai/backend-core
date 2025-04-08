@@ -63,7 +63,7 @@ class BaseModel(Model):
     def select_query(cls, columns=None):
         if columns is None:
             columns = []
-        return cls.select(*columns).where(cls.is_deleted == False)
+        return cls.select(*columns).where(cls.is_deleted == False)  # noqa
 
     @classmethod
     def update_query(cls, update_dict, skip_updated_at=False):

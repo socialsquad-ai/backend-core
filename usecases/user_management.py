@@ -20,18 +20,18 @@ class UserManagement:
         user = User.get_by_email(email)
         if not user:
             return "User not found", None, None
-        return "", user.get_details(), None
+        return "", user[0].get_details(), None
 
     @staticmethod
     def get_user_by_id(request: Request, user_id: int):
         user = User.get_by_pk(user_id)
         if not user:
             return "User not found", None, None
-        return "", user.get_details(), None
+        return "", user[0].get_details(), None
 
     @staticmethod
     def get_users(request: Request):
         users = User.get_all_users()
         if not users:
-            return "User not found", None, None
+            return "No users found", None, None
         return "", [user.get_details() for user in users], None
