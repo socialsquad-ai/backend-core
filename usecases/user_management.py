@@ -6,7 +6,7 @@ from fastapi import Request
 class UserManagement:
     @staticmethod
     def create_user(request: Request):
-        payload = get_request_json_post_payload(request)
+        payload = get_request_json_post_payload()
         email = payload["email"]
         timezone = payload["timezone"]
         user = User.get_or_create_user(email, timezone)
@@ -14,7 +14,7 @@ class UserManagement:
 
     @staticmethod
     def get_user_by_email(request: Request):
-        payload = get_request_json_post_payload(request)
+        payload = get_request_json_post_payload()
         email = payload["email"]
         user = User.get_by_email(email)
         if not user:

@@ -12,7 +12,7 @@ user_router = APIRouter(
 )
 
 
-@user_router.post("/create")
+@user_router.post("/")
 @require_authentication
 @validate_json_payload(
     {
@@ -30,25 +30,14 @@ async def create_user(request: Request):
     ).get_json()
 
 
-@user_router.get("/get")
+@user_router.get("/")
 @require_authentication
 @validate_json_payload(
     {
         "email": {
             "type": "string",
-            "required": False,  # Not strictly required since we allow user_id
-            "dependencies": {
-                "user_id": ["excludes"]  # Cannot be present with user_id
-            },
-        },
-        "user_id": {
-            "type": "integer",
-            "required": False,  # Not strictly required since we allow email
-            "dependencies": {
-                "email": ["excludes"]  # Cannot be present with email
-            },
-        },
-        "anyof": [{"required": ["email"]}, {"required": ["user_id"]}],
+            "required": False,
+        }
     }
 )
 async def get_user(request: Request):
