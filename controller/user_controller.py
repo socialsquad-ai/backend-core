@@ -41,3 +41,15 @@ async def get_user(request: Request, user_id: int):
         data=data,
         errors=errors,
     ).get_json()
+
+
+@user_router.get("/")
+@require_authentication
+async def get_users(request: Request):
+    error_message, data, errors = UserManagement.get_users(request)
+    return APIResponseFormat(
+        status_code=200,
+        message=error_message,
+        data=data,
+        errors=errors,
+    ).get_json()

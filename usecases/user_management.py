@@ -28,3 +28,10 @@ class UserManagement:
         if not user:
             return "User not found", None, None
         return "", user.get_details(), None
+
+    @staticmethod
+    def get_users(request: Request):
+        users = User.get_all_users()
+        if not users:
+            return "User not found", None, None
+        return "", [user.get_details() for user in users], None

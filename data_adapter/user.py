@@ -20,7 +20,7 @@ class User(BaseModel):
 
     @classmethod
     def get_by_pk(cls, pk):
-        return cls.select_query().where(cls.id == pk)
+        return cls.select_query().where(cls.id == pk).limit(1)[0]
 
     @classmethod
     def get_or_create_user(cls, email, timezone, password):
@@ -50,3 +50,7 @@ class User(BaseModel):
             "last_name": self.last_name,
             "timezone": self.timezone,
         }
+
+    @classmethod
+    def get_all_users(cls):
+        return cls.select_query().limit(100)
