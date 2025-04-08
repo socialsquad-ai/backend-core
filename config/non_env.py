@@ -8,7 +8,7 @@ SERVER_INIT_LOG_MESSAGE = "SERVER_INIT"
 CONFIG_ERROR_LOG_MESSAGE = "CONFIG_ERROR"
 ALERT_MESSAGE_PREPEND = "ALERT"
 GLOBAL_ERROR_KEY = "global_error"
-SERVICE_NAME = "socialsquad-service"
+SERVICE_NAME = "api-service"
 
 
 URL_REGEX = r"(([a-z]{3,6}://)|(^|\s))([a-zA-Z0-9\-]+\.)+[a-z]{2,13}[\.\?\=\&\%\/\w\-]*\b([^@]|$)"

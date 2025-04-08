@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
         )
 
 
-app = FastAPI(title="SocialSquad Service", lifespan=lifespan)
+app = FastAPI(title="API Service", lifespan=lifespan)
 
 init_routers(app)
 

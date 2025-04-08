@@ -4,7 +4,7 @@ from usecases.status_management import StatusManagement
 from config.non_env import API_VERSION_V1
 from fastapi import APIRouter
 from decorators.user import require_authentication
-from decorators.common import validate_post_payload
+from decorators.common import validate_json_payload
 
 status_router = APIRouter(
     prefix=f"{API_VERSION_V1}/status", tags=["status"]
@@ -24,7 +24,7 @@ async def get_status(request: Request):
 
 @status_router.get("/deep")
 @require_authentication
-@validate_post_payload(
+@validate_json_payload(
     {
         "example_key": {"type": "string", "required": True},
     }

@@ -5,7 +5,7 @@ from utils.exceptions import CustomBadRequest
 from utils.contextvar import get_request_json_post_payload
 
 
-def validate_post_payload(payload_validation_schema: dict):
+def validate_json_payload(payload_validation_schema: dict):
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
