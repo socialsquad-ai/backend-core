@@ -18,6 +18,7 @@ user_router = APIRouter(
     {
         "email": {"type": "string", "required": True},
         "timezone": {"type": "string", "required": True},
+        "password": {"type": "string", "required": True},
     }
 )
 async def create_user(request: Request):
@@ -30,18 +31,10 @@ async def create_user(request: Request):
     ).get_json()
 
 
-@user_router.get("/")
+@user_router.get("/{user_id}")
 @require_authentication
-@validate_json_payload(
-    {
-        "email": {
-            "type": "string",
-            "required": False,
-        }
-    }
-)
-async def get_user(request: Request):
-    error_message, data, errors = UserManagement.get_user_by_email(request)
+async def get_user(request: Request, user_id: int):
+    error_message, data, errors = UserManagement.get_user_by_id(request, user_id)
     return APIResponseFormat(
         status_code=200,
         message=error_message,

@@ -8,6 +8,8 @@ class User(BaseModel):
     first_name = CharField()
     last_name = CharField()
     password = CharField(null=True)
+    status = CharField(default="pending")
+    timezone = CharField(null=True)
 
     class Meta:
         db_table = "users"
@@ -17,7 +19,11 @@ class User(BaseModel):
         return cls.select_query().where(cls.email == email)
 
     @classmethod
-    def get_or_create_user(cls, email, timezone):
+    def get_by_pk(cls, pk):
+        return cls.select_query().where(cls.id == pk)
+
+    @classmethod
+    def get_or_create_user(cls, email, timezone, password):
         user, is_created = cls.get_or_create(email=email)
         if not is_created:  # Case when a deleted user is re-invited
             user.status = "active"
@@ -31,7 +37,9 @@ class User(BaseModel):
             user.first_name = first_name
             user.last_name = last_name
             user.timezone = timezone
+            user.password = password
             user.updated_at = datetime.datetime.utcnow()
+            user.status = "active"
         user.save()
         return user
 
