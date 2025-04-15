@@ -49,6 +49,14 @@ class BaseModel(Model):
     class Meta:
         database = ssq_db
 
+    @classmethod
+    def get_by_pk(cls, pk):
+        return cls.select_query().where(cls.id == pk).limit(1)
+
+    @classmethod
+    def get_by_uuid(cls, uuid):
+        return cls.select_query().where(cls.uuid == uuid).limit(1)
+
     def save(self, *args, **kwargs):
         if not kwargs.pop("skip_updated_at", False):
             self.updated_at = datetime.datetime.now()

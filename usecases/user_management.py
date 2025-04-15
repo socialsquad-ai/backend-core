@@ -1,6 +1,8 @@
 from data_adapter.user import User
 from utils.contextvar import get_request_json_post_payload
 from fastapi import Request
+from utils.error_messages import RESOURCE_NOT_FOUND, INVALID_UUID
+from utils.util import is_valid_uuid_v4
 
 
 class UserManagement:
@@ -19,14 +21,16 @@ class UserManagement:
         email = payload["email"]
         user = User.get_by_email(email)
         if not user:
-            return "User not found", None, None
+            return RESOURCE_NOT_FOUND, None, None
         return "", user[0].get_details(), None
 
     @staticmethod
-    def get_user_by_id(request: Request, user_id: int):
-        user = User.get_by_pk(user_id)
+    def get_user_by_uuid(request: Request, user_uuid: str):
+        user = User.get_by_uuid(user_uuid)
+        if not is_valid_uuid_v4(user_uuid):
+            return INVALID_UUID, None, None
         if not user:
-            return "User not found", None, None
+            return RESOURCE_NOT_FOUND, None, None
         return "", {"user": user[0].get_details()}, None
 
     @staticmethod

@@ -19,10 +19,6 @@ class User(BaseModel):
         return cls.select_query().where(cls.email == email).limit(1)
 
     @classmethod
-    def get_by_pk(cls, pk):
-        return cls.select_query().where(cls.id == pk).limit(1)
-
-    @classmethod
     def get_or_create_user(cls, email, timezone, password):
         user, is_created = cls.get_or_create(email=email)
         if not is_created:  # Case when a deleted user is re-invited
@@ -49,6 +45,7 @@ class User(BaseModel):
             "first_name": self.first_name,
             "last_name": self.last_name,
             "timezone": self.timezone,
+            "user_id": str(self.uuid),
         }
 
     @classmethod

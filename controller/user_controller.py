@@ -5,6 +5,8 @@ from decorators.common import validate_json_payload
 from fastapi import Request
 from controller.util import APIResponseFormat
 from config.non_env import API_VERSION_V1
+from utils.error_messages import RESOURCE_NOT_FOUND, INVALID_UUID
+from utils.status_codes import RESPONSE_404, RESPONSE_400
 
 user_router = APIRouter(
     prefix=f"{API_VERSION_V1}/users",
@@ -31,10 +33,25 @@ async def create_user(request: Request):
     ).get_json()
 
 
-@user_router.get("/{user_id}")
+@user_router.get("/{user_uuid}")
 @require_authentication
-async def get_user(request: Request, user_id: int):
-    error_message, data, errors = UserManagement.get_user_by_id(request, user_id)
+async def get_user(request: Request, user_uuid: str):
+    error_message, data, errors = UserManagement.get_user_by_uuid(request, user_uuid)
+    if error_message == RESOURCE_NOT_FOUND:
+        return APIResponseFormat(
+            status_code=RESPONSE_404,
+            message=error_message,
+            data=data,
+            errors=errors,
+        ).get_json()
+    if error_message == INVALID_UUID:
+        return APIResponseFormat(
+            status_code=RESPONSE_400,
+            message=error_message,
+            data=data,
+            errors=errors,
+        ).get_json()
+
     return APIResponseFormat(
         status_code=200,
         message=error_message,

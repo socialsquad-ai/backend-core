@@ -1,0 +1,2 @@
+RESOURCE_NOT_FOUND = "Not found"
+INVALID_UUID = "Invalid ID"
