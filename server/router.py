@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from controller.status_controller import status_router
-from controller.user_controller import sample_user_router
+from controller.sample_user_controller import sample_user_router
 
 
 def init_routers(app: FastAPI):
