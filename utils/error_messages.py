@@ -1,2 +1,2 @@
 RESOURCE_NOT_FOUND = "Not found"
-INVALID_UUID = "Invalid ID"
+INVALID_RESOURCE_ID = "Invalid ID"
