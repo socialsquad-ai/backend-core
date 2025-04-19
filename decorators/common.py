@@ -54,6 +54,16 @@ def validate_query_params(func):
 
 
 def singleton_class(cls):
+    """
+    await the class to be initialized
+    class_object = await SingletonClass()
+    class_object.method()
+
+
+    if not awaited it will return a coroutine object
+    class_object = SingletonClass()
+    class_object.method() (fails with coroutine not having the method)
+    """
     instances: Dict[Type, Any] = {}
     lock = asyncio.Lock()
 
