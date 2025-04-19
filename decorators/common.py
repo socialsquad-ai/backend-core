@@ -3,6 +3,7 @@ from controller.cerebrus import CustomValidator
 from logger.logging import LoggerUtil
 from utils.exceptions import CustomBadRequest
 from utils.contextvar import get_request_json_post_payload
+import asyncio
 from typing import Dict, Type, Any
 
 
@@ -54,12 +55,14 @@ def validate_query_params(func):
 
 def singleton_class(cls):
     instances: Dict[Type, Any] = {}
+    lock = asyncio.Lock()
 
     async def wrapper(*args, **kwargs):
         if cls not in instances:
-            # Double-checked locking pattern
-            if cls not in instances:
-                instances[cls] = cls(*args, **kwargs)
+            async with lock:
+                # Double-checked locking pattern
+                if cls not in instances:
+                    instances[cls] = cls(*args, **kwargs)
         return instances[cls]
 
     return wrapper
