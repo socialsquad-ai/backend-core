@@ -6,6 +6,7 @@ from utils.contextvar import (
     get_request_json_post_payload,
     get_request_metadata,
     set_request_metadata,
+    clear_request_metadata,
 )
 import asyncio
 from typing import Dict, Type, Any
@@ -91,24 +92,27 @@ executor = ThreadPoolExecutor(max_workers=4)  # or as needed
 def run_in_background(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        # Get current request_metadata
         current_metadata = get_request_metadata()
-        # Generate new thread_id, keep same api_id
         new_metadata = RequestMetadata(
             api_id=current_metadata["api_id"], thread_id=str(uuid.uuid4())
         )
 
         def run_in_thread():
-            # Set the new request_metadata in this thread's context
-            set_request_metadata(new_metadata.to_dict())
-            # Call the original function
-            return func(*args, **kwargs)
+            try:
+                set_request_metadata(new_metadata.to_dict())
+                return func(*args, **kwargs)
+            finally:
+                # Clear context when job is done
+                clear_request_metadata()
 
         if asyncio.iscoroutinefunction(func):
 
             def async_runner():
-                set_request_metadata(new_metadata.to_dict())
-                asyncio.run(func(*args, **kwargs))
+                try:
+                    set_request_metadata(new_metadata.to_dict())
+                    asyncio.run(func(*args, **kwargs))
+                finally:
+                    clear_request_metadata()
 
             executor.submit(async_runner)
         else:
