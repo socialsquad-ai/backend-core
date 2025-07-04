@@ -13,6 +13,7 @@ from typing import Dict, Type, Any
 import uuid
 from utils.contextvar import RequestMetadata
 from concurrent.futures import ThreadPoolExecutor
+import datetime
 
 
 def validate_json_payload(payload_validation_schema: dict):
@@ -93,8 +94,14 @@ def run_in_background(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         current_metadata = get_request_metadata()
+        new_thread_id = str(uuid.uuid4())
         new_metadata = RequestMetadata(
-            api_id=current_metadata["api_id"], thread_id=str(uuid.uuid4())
+            api_id=current_metadata["api_id"], thread_id=new_thread_id
+        )
+        LoggerUtil.create_info_log(
+            "Background job started with thread_id : {} and api_id : {}, timestamp :{}".format(
+                new_thread_id, current_metadata["api_id"], datetime.datetime.now()
+            )
         )
 
         def run_in_thread():
