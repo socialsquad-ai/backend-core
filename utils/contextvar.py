@@ -56,7 +56,10 @@ def get_context_api_id() -> str:
 
 def get_request_json_post_payload() -> dict[str, Any]:
     # Return as dictionary to maintain backward compatibility
-    return context_json_post_payload.get().to_dict()
+    try:
+        return context_json_post_payload.get().to_dict()
+    except Exception:
+        return {}
 
 
 async def set_context_json_post_payload(request: Request) -> None:

@@ -4,12 +4,16 @@ from decorators.user import require_authentication
 from decorators.common import validate_json_payload
 from fastapi import Request
 from controller.util import APIResponseFormat
-from config.non_env import API_VERSION_V1
+from config.non_env import API_VERSION_V1, API_VERSION_V2
 from utils.error_messages import RESOURCE_NOT_FOUND, INVALID_RESOURCE_ID
 from utils.status_codes import RESPONSE_404, RESPONSE_400
 
 sample_user_router = APIRouter(
     prefix=f"{API_VERSION_V1}/users",
+    tags=["user"],
+)
+sample_user_router_v2 = APIRouter(
+    prefix=f"{API_VERSION_V2}/users",
     tags=["user"],
 )
 
@@ -64,6 +68,18 @@ async def get_user(request: Request, user_uuid: str):
 @require_authentication
 async def get_users(request: Request):
     error_message, data, errors = UserManagement.get_users(request)
+    return APIResponseFormat(
+        status_code=200,
+        message=error_message,
+        data=data,
+        errors=errors,
+    ).get_json()
+
+
+@sample_user_router_v2.get("/")
+@require_authentication
+async def get_users_v2(request: Request):
+    error_message, data, errors = UserManagement.get_users_v2(request)
     return APIResponseFormat(
         status_code=200,
         message=error_message,

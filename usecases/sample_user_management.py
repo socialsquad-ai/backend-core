@@ -1,8 +1,9 @@
 from data_adapter.sample_user import User
-from utils.contextvar import get_request_json_post_payload
+from utils.contextvar import get_request_json_post_payload, get_request_metadata
 from fastapi import Request
 from utils.error_messages import RESOURCE_NOT_FOUND, INVALID_RESOURCE_ID
 from utils.util import is_valid_uuid_v4
+from decorators.common import run_in_background
 
 
 class UserManagement:
@@ -39,3 +40,27 @@ class UserManagement:
         if not users:
             return "No users found", None, None
         return "", {"users": [user.get_details() for user in users]}, None
+
+    @staticmethod
+    def get_users_v2(request: Request):
+        # To show sample usage of background job
+        users = User.get_all_users()
+        if not users:
+            return "No users found", None, None
+        background_job()
+        print("fdsafdas")
+        return "", {"users": [user.get_details() for user in users]}, None
+
+
+# sample background job
+@run_in_background
+def background_job():
+    import time
+
+    nana = get_request_metadata()
+    print(f"Background job running : {nana}")
+    count = 0
+    while True:
+        time.sleep(1)
+        count += 1
+        print(f"Background job running for seconds : {count}")

@@ -2,9 +2,16 @@ from functools import wraps
 from controller.cerebrus import CustomValidator
 from logger.logging import LoggerUtil
 from utils.exceptions import CustomBadRequest
-from utils.contextvar import get_request_json_post_payload
+from utils.contextvar import (
+    get_request_json_post_payload,
+    get_request_metadata,
+    set_request_metadata,
+)
 import asyncio
 from typing import Dict, Type, Any
+import uuid
+from utils.contextvar import RequestMetadata
+from concurrent.futures import ThreadPoolExecutor
 
 
 def validate_json_payload(payload_validation_schema: dict):
@@ -74,5 +81,37 @@ def singleton_class(cls):
                 if cls not in instances:
                     instances[cls] = cls(*args, **kwargs)
         return instances[cls]
+
+    return wrapper
+
+
+executor = ThreadPoolExecutor(max_workers=4)  # or as needed
+
+
+def run_in_background(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Get current request_metadata
+        current_metadata = get_request_metadata()
+        # Generate new thread_id, keep same api_id
+        new_metadata = RequestMetadata(
+            api_id=current_metadata["api_id"], thread_id=str(uuid.uuid4())
+        )
+
+        def run_in_thread():
+            # Set the new request_metadata in this thread's context
+            set_request_metadata(new_metadata.to_dict())
+            # Call the original function
+            return func(*args, **kwargs)
+
+        if asyncio.iscoroutinefunction(func):
+
+            def async_runner():
+                set_request_metadata(new_metadata.to_dict())
+                asyncio.run(func(*args, **kwargs))
+
+            executor.submit(async_runner)
+        else:
+            executor.submit(run_in_thread)
 
     return wrapper
