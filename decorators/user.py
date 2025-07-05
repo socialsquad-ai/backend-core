@@ -3,6 +3,7 @@ from fastapi import Request
 from utils.exceptions import CustomUnauthorized
 from utils.auth0_service import Auth0Service
 from logger.logging import LoggerUtil
+from config import env
 
 
 def require_authentication(func):
@@ -42,6 +43,44 @@ def require_authentication(func):
             LoggerUtil.create_error_log(f"Unexpected authentication error: {e}")
             raise CustomUnauthorized(detail="Authentication failed")
 
+        return await func(*args, **kwargs)
+
+    return wrapper
+
+
+def require_internal_authentication(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        request = kwargs.get("request")
+        if request is None:
+            request = next((arg for arg in args if isinstance(arg, Request)), None)
+        if request is None:
+            LoggerUtil.create_error_log("No request object found in function arguments")
+            raise CustomUnauthorized(detail="Authentication required")
+
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            LoggerUtil.create_error_log(
+                "No Authorization header found for internal auth"
+            )
+            raise CustomUnauthorized(detail="Authorization header required")
+
+        # Check for Bearer token format
+        if not auth_header.startswith("Bearer "):
+            LoggerUtil.create_error_log(
+                "Invalid Authorization header format for internal auth"
+            )
+            raise CustomUnauthorized(detail="Invalid authorization format")
+
+        # Extract the token
+        token = auth_header[7:]  # Remove "Bearer " prefix
+
+        # Validate against internal API key
+        if token != env.INTERNAL_AUTH_API_KEY:
+            LoggerUtil.create_error_log("Invalid internal API key")
+            raise CustomUnauthorized(detail="Invalid internal API key")
+
+        LoggerUtil.create_info_log("Internal authentication successful")
         return await func(*args, **kwargs)
 
     return wrapper
