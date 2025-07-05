@@ -1,6 +1,8 @@
 from functools import wraps
 from fastapi import Request
 from utils.exceptions import CustomUnauthorized
+from utils.auth0_service import Auth0Service
+from logger.logging import LoggerUtil
 
 
 def require_authentication(func):
@@ -13,11 +15,32 @@ def require_authentication(func):
         if request is None:
             request = next((arg for arg in args if isinstance(arg, Request)), None)
         if request is None:
-            raise CustomUnauthorized()
+            LoggerUtil.create_error_log("No request object found in function arguments")
+            raise CustomUnauthorized(detail="Authentication required")
+
         auth_header = request.headers.get("Authorization")
-        # TODO :: Add the logic to check the token
-        if not auth_header or auth_header != "Bearer valid_token":
-            raise CustomUnauthorized()
+        if not auth_header:
+            LoggerUtil.create_error_log("No Authorization header found")
+            raise CustomUnauthorized(detail="Authorization header required")
+
+        try:
+            # Create Auth0Service instance and validate the token
+            auth0_service = Auth0Service()
+            token_payload = auth0_service.validate_token(auth_header)
+
+            # Store user information in request state for potential use in the endpoint
+            request.state.user = token_payload
+
+            LoggerUtil.create_info_log(
+                f"Authentication successful for user: {token_payload.get('sub', 'unknown')}"
+            )
+
+        except CustomUnauthorized:
+            # Re-raise the exception as it's already properly formatted
+            raise
+        except Exception as e:
+            LoggerUtil.create_error_log(f"Unexpected authentication error: {e}")
+            raise CustomUnauthorized(detail="Authentication failed")
 
         return await func(*args, **kwargs)
 

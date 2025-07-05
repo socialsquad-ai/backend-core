@@ -49,3 +49,8 @@ SSQ_DB_HOST = Environment.get_string("SSQ_DB_HOST")
 SSQ_DB_PASSWORD = Environment.get_string("SSQ_DB_PASSWORD")
 SSQ_DB_PORT = Environment.get_int("SSQ_DB_PORT")
 APP_ENVIRONMENT = Environment.get_string("APP_ENVIRONMENT")
+
+# Auth0 Configuration (for token validation only)
+AUTH0_DOMAIN = Environment.get_string("AUTH0_DOMAIN")
+AUTH0_AUDIENCE = Environment.get_string("AUTH0_AUDIENCE")
+AUTH0_ISSUER = Environment.get_string("AUTH0_ISSUER", f"https://{AUTH0_DOMAIN}/")
