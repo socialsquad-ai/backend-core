@@ -108,6 +108,15 @@ def run_in_background(func):
             try:
                 set_request_metadata(new_metadata.to_dict())
                 return func(*args, **kwargs)
+            except Exception as e:
+                LoggerUtil.create_error_log(
+                    "Background job failed with thread_id : {} and api_id : {}, timestamp :{}".format(
+                        new_thread_id,
+                        current_metadata["api_id"],
+                        datetime.datetime.now(),
+                    )
+                )
+                raise e
             finally:
                 # Clear context when job is done
                 clear_request_metadata()
@@ -118,6 +127,14 @@ def run_in_background(func):
                 try:
                     set_request_metadata(new_metadata.to_dict())
                     asyncio.run(func(*args, **kwargs))
+                except Exception:
+                    LoggerUtil.create_error_log(
+                        "Background job failed with thread_id : {} and api_id : {}, timestamp :{}".format(
+                            new_thread_id,
+                            current_metadata["api_id"],
+                            datetime.datetime.now(),
+                        )
+                    )
                 finally:
                     clear_request_metadata()
 
