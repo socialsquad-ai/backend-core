@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from usecases.user_management import UserManagement
 from decorators.user import require_authentication
-from decorators.common import validate_json_payload
+from decorators.common import validate_json_payload, require_internal_authentication
 from fastapi import Request
 from controller.util import APIResponseFormat
 from config.non_env import API_VERSION_V1, API_VERSION_V2
@@ -19,12 +19,15 @@ user_router_v2 = APIRouter(
 
 
 @user_router.post("/")
-@require_authentication
+@require_internal_authentication
 @validate_json_payload(
     {
         "email": {"type": "string", "required": True},
-        "timezone": {"type": "string", "required": True},
-        "password": {"type": "string", "required": True},
+        "auth0_user_id": {"type": "string", "required": True},
+        "name": {"type": "string", "required": True},
+        "signup_method": {"type": "string", "required": True},
+        "email_verified": {"type": "boolean", "required": True},
+        "auth0_created_at": {"type": "string", "required": True},
     }
 )
 async def create_user(request: Request):
