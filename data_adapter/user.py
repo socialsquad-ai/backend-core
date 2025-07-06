@@ -5,7 +5,7 @@ from playhouse.postgres_ext import CharField, BooleanField, DateTimeField
 class User(BaseModel):
     auth0_user_id = CharField(unique=True)  # Auth0 user ID
     name = CharField(null=True)
-    email = CharField(unique=True)
+    email = CharField()
     signup_method = CharField(
         default="email-password"
     )  # email-password, google, facebook, etc.

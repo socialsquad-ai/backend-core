@@ -75,7 +75,7 @@ async def get_user(request: Request, user_uuid: str):
 
 
 @user_router.get("/")
-@require_internal_authentication
+@require_authentication
 async def get_users(request: Request):
     error_message, data, errors = UserManagement.get_users(request)
     return APIResponseFormat(
