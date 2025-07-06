@@ -50,7 +50,11 @@ class User(BaseModel):
             "email": self.email,
             "signup_method": self.signup_method,
             "email_verified": self.email_verified,
-            "created_at": self.auth0_created_at,
+            "created_at": (
+                self.auth0_created_at.isoformat()
+                if self.auth0_created_at
+                else self.created_at.isoformat()
+            ),
             "uuid": str(self.uuid),
         }
 
