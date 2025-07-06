@@ -24,10 +24,10 @@ user_router_v2 = APIRouter(
     {
         "email": {"type": "string", "required": True},
         "auth0_user_id": {"type": "string", "required": True},
-        "name": {"type": "string", "required": True},
+        "name": {"type": "string", "required": False},
         "signup_method": {"type": "string", "required": True},
         "email_verified": {"type": "boolean", "required": True},
-        "auth0_created_at": {"type": "string", "required": True},
+        "auth0_created_at": {"type": "string", "required": False},
     }
 )
 async def create_user(request: Request):

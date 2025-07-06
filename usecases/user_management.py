@@ -5,6 +5,7 @@ from utils.error_messages import RESOURCE_NOT_FOUND, INVALID_RESOURCE_ID
 from utils.util import is_valid_uuid_v4
 from decorators.common import run_in_background
 from peewee import IntegrityError
+import datetime
 
 
 class UserManagement:
@@ -13,10 +14,12 @@ class UserManagement:
         payload = get_request_json_post_payload()
         email = payload["email"]
         auth0_user_id = payload["auth0_user_id"]
-        name = payload["name"]
+        name = payload.get("name", email.split("@")[0])
         signup_method = payload["signup_method"]
         email_verified = payload["email_verified"]
-        auth0_created_at = payload["auth0_created_at"]
+        auth0_created_at = payload.get(
+            "auth0_created_at", datetime.datetime.now(datetime.timezone.utc).isoformat()
+        )
         try:
             user = User.get_or_create_user_from_auth0(
                 auth0_user_id,
