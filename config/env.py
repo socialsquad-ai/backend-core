@@ -56,4 +56,4 @@ AUTH0_AUDIENCE = Environment.get_string("AUTH0_AUDIENCE")
 AUTH0_ISSUER = Environment.get_string("AUTH0_ISSUER", f"https://{AUTH0_DOMAIN}/")
 
 # Internal API Key (for webhooks, callbacks, internal services)
-INTERNAL_AUTH_API_KEY = Environment.get_string("INTERNAL_API_KEY")
+INTERNAL_AUTH_API_KEY = Environment.get_string("INTERNAL_AUTH_API_KEY")
