@@ -6,7 +6,7 @@ CREATE TABLE users (
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     auth0_user_id VARCHAR(255) NOT NULL UNIQUE,  -- Auth0 user ID
     name VARCHAR(255),
-    email VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL,
     signup_method VARCHAR(50) NOT NULL DEFAULT 'email-password',  -- email-password, google, facebook, etc.
     email_verified BOOLEAN NOT NULL DEFAULT FALSE,
     auth0_created_at TIMESTAMP  -- When user was created in Auth0
