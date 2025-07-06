@@ -57,3 +57,9 @@ AUTH0_ISSUER = Environment.get_string("AUTH0_ISSUER", f"https://{AUTH0_DOMAIN}/"
 
 # Internal API Key (for webhooks, callbacks, internal services)
 INTERNAL_AUTH_API_KEY = Environment.get_string("INTERNAL_AUTH_API_KEY")
+
+# Social Media Integration Configuration
+META_CLIENT_ID = Environment.get_string("META_CLIENT_ID")
+META_CLIENT_SECRET = Environment.get_string("META_CLIENT_SECRET")
+GOOGLE_CLIENT_ID = Environment.get_string("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = Environment.get_string("GOOGLE_CLIENT_SECRET")

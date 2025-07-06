@@ -1,5 +1,7 @@
 from data_adapter.db import BaseModel
 from playhouse.postgres_ext import CharField, BooleanField, DateTimeField
+from peewee import ForeignKeyField
+from data_adapter.account import Account
 
 
 class User(BaseModel):
@@ -11,6 +13,7 @@ class User(BaseModel):
     )  # email-password, google, facebook, etc.
     email_verified = BooleanField(default=False)
     auth0_created_at = DateTimeField(null=True)  # When user was created in Auth0
+    account = ForeignKeyField(Account, backref="users")
 
     class Meta:
         db_table = "users"
@@ -25,7 +28,14 @@ class User(BaseModel):
 
     @classmethod
     def get_or_create_user_from_auth0(
-        cls, auth0_user_id, name, email, signup_method, email_verified, auth0_created_at
+        cls,
+        auth0_user_id,
+        name,
+        email,
+        signup_method,
+        email_verified,
+        auth0_created_at,
+        account,
     ):
         """
         Create or update user from Auth0 user data
@@ -39,10 +49,15 @@ class User(BaseModel):
                 signup_method=signup_method,
                 email_verified=email_verified,
                 auth0_created_at=auth0_created_at,
+                account=account,
             )
         except Exception as e:
             raise e
         return user
+
+    @classmethod
+    def get_all_users(cls):
+        return cls.select_query().limit(100)
 
     def get_details(self):
         return {
@@ -57,7 +72,3 @@ class User(BaseModel):
             ),
             "uuid": str(self.uuid),
         }
-
-    @classmethod
-    def get_all_users(cls):
-        return cls.select_query().limit(100)

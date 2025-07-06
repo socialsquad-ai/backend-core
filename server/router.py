@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from controller.status_controller import status_router
-from controller.user_controller import user_router, user_router_v2
+from controller.user_controller import user_router
+from controller.integration_controller import integrations_router
 
 
 def init_routers(app: FastAPI):
@@ -8,4 +9,4 @@ def init_routers(app: FastAPI):
 
     app.include_router(status_router)
     app.include_router(user_router)
-    app.include_router(user_router_v2)
+    app.include_router(integrations_router)

@@ -12,10 +12,6 @@ user_router = APIRouter(
     prefix=f"{API_VERSION_V1}/users",
     tags=["user"],
 )
-user_router_v2 = APIRouter(
-    prefix=f"{API_VERSION_V2}/users",
-    tags=["user"],
-)
 
 
 @user_router.post("/")
@@ -78,18 +74,6 @@ async def get_user(request: Request, user_uuid: str):
 @require_authentication
 async def get_users(request: Request):
     error_message, data, errors = UserManagement.get_users(request)
-    return APIResponseFormat(
-        status_code=200,
-        message=error_message,
-        data=data,
-        errors=errors,
-    ).get_json()
-
-
-@user_router_v2.get("/")
-@require_authentication
-async def get_users_v2(request: Request):
-    error_message, data, errors = UserManagement.get_users_v2(request)
     return APIResponseFormat(
         status_code=200,
         message=error_message,
