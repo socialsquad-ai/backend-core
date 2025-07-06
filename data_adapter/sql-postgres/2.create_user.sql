@@ -4,12 +4,12 @@ CREATE TABLE users (
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     updated_at TIMESTAMP NOT NULL DEFAULT now(),
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    auth0_user_id VARCHAR(255) NOT NULL UNIQUE,  -- Auth0 user ID
+    name VARCHAR(255),
     email VARCHAR(255) NOT NULL UNIQUE,
-    timezone VARCHAR(255),
-    first_name VARCHAR(255),
-    last_name VARCHAR(255),
-    password VARCHAR(255) NULL,
-    status VARCHAR(255) NOT NULL DEFAULT 'pending'
+    signup_method VARCHAR(50) NOT NULL DEFAULT 'email-password',  -- email-password, google, facebook, etc.
+    email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    auth0_created_at TIMESTAMP  -- When user was created in Auth0
 );
 
 GRANT ALL PRIVILEGES ON TABLE users TO ssq_user;

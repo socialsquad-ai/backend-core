@@ -1,9 +1,10 @@
-from data_adapter.sample_user import User
+from data_adapter.user import User
 from utils.contextvar import get_request_json_post_payload, get_request_metadata
 from fastapi import Request
 from utils.error_messages import RESOURCE_NOT_FOUND, INVALID_RESOURCE_ID
 from utils.util import is_valid_uuid_v4
 from decorators.common import run_in_background
+from peewee import IntegrityError
 
 
 class UserManagement:
@@ -11,10 +12,25 @@ class UserManagement:
     def create_user(request: Request):
         payload = get_request_json_post_payload()
         email = payload["email"]
-        timezone = payload["timezone"]
-        password = payload["password"]
-        user = User.get_or_create_user(email, timezone, password)
-        return "", user.get_details(), None
+        auth0_user_id = payload["auth0_user_id"]
+        name = payload["name"]
+        signup_method = payload["signup_method"]
+        email_verified = payload["email_verified"]
+        auth0_created_at = payload["auth0_created_at"]
+        try:
+            user = User.get_or_create_user_from_auth0(
+                auth0_user_id,
+                name,
+                email,
+                signup_method,
+                email_verified,
+                auth0_created_at,
+            )
+            return "", user.get_details(), None
+        except IntegrityError:
+            return "", None, "User already exists"
+        except Exception as e:
+            return "", None, e
 
     @staticmethod
     def get_user_by_email(request: Request):
