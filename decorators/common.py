@@ -1,5 +1,5 @@
 from functools import wraps
-from controller.cerebrus import CustomValidator
+from controller.cerberus import CustomValidator
 from logger.logging import LoggerUtil
 from utils.exceptions import CustomBadRequest
 from utils.contextvar import (

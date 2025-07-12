@@ -63,6 +63,9 @@ def get_request_json_post_payload() -> dict[str, Any]:
 
 
 async def set_context_json_post_payload(request: Request) -> None:
+    # Do not set context json post payload for GET/DELETE requests
+    if request.method in ["GET", "DELETE"]:
+        return
     try:
         payload = await request.json()
         # Store as immutable dataclass

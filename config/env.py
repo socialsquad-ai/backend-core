@@ -7,7 +7,7 @@ from config.util import Environment
 from logger.logging import LoggerUtil
 
 TESTING = os.environ.get("APP_ENVIRONMENT") == "testing"
-LOCAL = os.environ.get("APP_ENVIRONMENT") == "local"
+LOCAL = os.environ.get("APP_ENVIRONMENT", "local") == "local"
 # Load env variables from a file, if exists
 LoggerUtil.create_info_log(
     "{}::Setting environment variables from .env file(if exists)...".format(
@@ -57,3 +57,12 @@ AUTH0_ISSUER = Environment.get_string("AUTH0_ISSUER", f"https://{AUTH0_DOMAIN}/"
 
 # Internal API Key (for webhooks, callbacks, internal services)
 INTERNAL_AUTH_API_KEY = Environment.get_string("INTERNAL_AUTH_API_KEY")
+
+SSQ_BASE_URL = Environment.get_string("SSQ_BASE_URL")
+SSQ_CLIENT_URL = Environment.get_string("SSQ_CLIENT_URL")
+
+# Social Media Integration Configuration
+META_CLIENT_ID = Environment.get_string("META_CLIENT_ID")
+META_CLIENT_SECRET = Environment.get_string("META_CLIENT_SECRET")
+GOOGLE_CLIENT_ID = Environment.get_string("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = Environment.get_string("GOOGLE_CLIENT_SECRET")
