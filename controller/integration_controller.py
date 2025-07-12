@@ -52,12 +52,13 @@ async def get_oauth_url(request: Request, platform: str):
 
 
 @integrations_router.get("/{platform}/oauth/callback")
-@require_authentication
 async def handle_oauth_callback(request: Request, platform: str, code: str):
     error_message, data, errors = IntegrationManagement.handle_oauth_callback(
         platform, code, request
     )
     status_code = 200 if not error_message else 500
+    if status_code == 200:
+        return RedirectResponse(url=data)
     return APIResponseFormat(
         status_code=status_code,
         message=error_message,

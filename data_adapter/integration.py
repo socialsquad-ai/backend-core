@@ -1,9 +1,5 @@
 from data_adapter.db import BaseModel
-from playhouse.postgres_ext import (
-    CharField,
-    DateTimeField,
-    TextField,
-)
+from playhouse.postgres_ext import CharField, DateTimeField, TextField, JSONField
 from peewee import ForeignKeyField
 from datetime import datetime, timezone
 from data_adapter.user import User
@@ -11,12 +7,16 @@ from data_adapter.user import User
 
 class Integration(BaseModel):
     user = ForeignKeyField(User, backref="integrations")
+    platform_user_id = CharField(
+        max_length=50, null=False
+    )  # e.g., 'instagram_user_id', 'youtube_channel_id'
     platform = CharField(max_length=50, null=False)  # e.g., 'instagram', 'youtube'
     access_token = TextField(null=False)
-    refresh_token = TextField(null=True)  # Not all platforms provide refresh tokens
+    refresh_token = TextField(null=True)
     expires_at = DateTimeField(null=True)  # When the access token expires
     token_type = CharField(max_length=50, null=False)
-    scope = TextField(null=False)  # The scopes granted as a comma-separated string
+    scopes = JSONField(null=False)  # The scopes granted
+    refresh_token_expires_at = DateTimeField(null=True)
 
     class Meta:
         db_table = "integrations"
@@ -33,21 +33,25 @@ class Integration(BaseModel):
     def create_integration(
         cls,
         user,
+        platform_user_id,
         platform,
         access_token,
-        refresh_token,
         expires_at,
         token_type,
-        scope,
+        scopes,
+        refresh_token=None,
+        refresh_token_expires_at=None,
     ):
         return cls.create(
             user=user,
+            platform_user_id=platform_user_id,
             platform=platform,
             access_token=access_token,
             refresh_token=refresh_token,
             expires_at=expires_at,
             token_type=token_type,
-            scope=scope,
+            scopes=scopes,
+            refresh_token_expires_at=refresh_token_expires_at,
         )
 
     def get_details(self):
