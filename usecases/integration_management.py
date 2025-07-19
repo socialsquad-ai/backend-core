@@ -1,5 +1,4 @@
 from data_adapter.integration import Integration
-from data_adapter.user import User
 from config.env import (
     META_CLIENT_ID,
     META_CLIENT_SECRET,
@@ -12,6 +11,12 @@ import requests
 from datetime import datetime, timedelta, timezone
 
 from logger.logging import LoggerUtil
+from utils.contextvar import get_context_user
+from utils.error_messages import (
+    INTEGRATION_NOT_FOUND,
+    UNSUPPORTED_PLATFORM,
+    USER_NOT_FOUND,
+)
 
 
 class IntegrationManagement:
@@ -36,27 +41,24 @@ class IntegrationManagement:
     PLATFORMS_USING_REFRESH_TOKEN = ["youtube"]
 
     @staticmethod
-    def get_all_integrations(request):
-        user = User.get_current_user(request)
+    def get_all_integrations():
+        user = get_context_user()
         integrations = Integration.get_all_for_user(user)
         return None, [integration.get_details() for integration in integrations], None
 
     @staticmethod
-    def get_integration_by_uuid(request, integration_uuid):
-        user = User.get_current_user(request)
-        try:
-            integration = Integration.get_by_uuid_for_user(integration_uuid, user)
-            if not integration:
-                return "Integration not found", None, ["Integration not found"]
-            return None, integration.get_details(), None
-        except Integration.DoesNotExist:
-            return "Integration not found", None, ["Integration not found"]
+    def get_integration_by_uuid(integration_uuid):
+        user = get_context_user()
+        integration = Integration.get_by_uuid_for_user(integration_uuid, user)
+        if not integration:
+            return INTEGRATION_NOT_FOUND, None, [INTEGRATION_NOT_FOUND]
+        return None, integration[0].get_details(), None
 
     @staticmethod
     def get_oauth_url(platform, request):
         config = IntegrationManagement.PLATFORMS.get(platform)
         if not config:
-            return "Unsupported platform", None, ["Unsupported platform"]
+            return UNSUPPORTED_PLATFORM, None, [UNSUPPORTED_PLATFORM]
 
         redirect_uri = request.query_params.get("redirect_uri")
         return (
@@ -68,10 +70,10 @@ class IntegrationManagement:
         )
 
     @staticmethod
-    def handle_oauth_callback(platform, code, request):
+    def handle_oauth_callback(platform, code):
         config = IntegrationManagement.PLATFORMS.get(platform)
         if not config:
-            return "Unsupported platform", None, ["Unsupported platform"]
+            return UNSUPPORTED_PLATFORM, None, [UNSUPPORTED_PLATFORM]
 
         try:
             data = {
@@ -86,9 +88,9 @@ class IntegrationManagement:
             LoggerUtil.create_info_log(f"token response: {response_data}")
 
             # Save the tokens
-            user = User.get_current_user(request)
+            user = get_context_user()
             if not user:
-                return "User not found", None, ["User not found"]
+                return USER_NOT_FOUND, None, [USER_NOT_FOUND]
             user = user[0]
 
             # For handling expired access tokens
@@ -132,14 +134,9 @@ class IntegrationManagement:
             return "Error in handle_oauth_callback", None, [str(e)]
 
     @staticmethod
-    def delete_integration(request, integration_uuid):
-        user = User.get_current_user()
-        try:
-            integration = Integration.get_by_uuid_for_user(integration_uuid, user)
-            integration.delete_instance()
-            return "", None, None
-        except Integration.DoesNotExist:
+    def delete_integration(integration_uuid):
+        user = get_context_user()
+        integration = Integration.delete_by_uuid_for_user(integration_uuid, user)
+        if not integration:
             return "Integration not found", None, ["Integration not found"]
-        except Exception as e:
-            LoggerUtil.create_error_log(f"Error in delete_integration: {e}")
-            return "Error in delete_integration", None, [str(e)]
+        return "", None, None

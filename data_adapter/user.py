@@ -39,7 +39,7 @@ class User(BaseModel):
     ):
         """
         Create or update user from Auth0 user data
-        user_data should contain: auth0_user_id, name, email, signup_method, email_verified, created_at
+        user_data should contain: auth0_user_id, name, email, signup_method, email_verified, created_at, account
         """
         try:
             user = User.create(

@@ -5,6 +5,7 @@ from usecases.integration_management import IntegrationManagement
 from config.non_env import API_VERSION_V1
 from fastapi import APIRouter
 from decorators.user import require_authentication
+from utils.error_messages import INTEGRATION_NOT_FOUND, UNSUPPORTED_PLATFORM
 
 integrations_router = APIRouter(
     prefix=f"{API_VERSION_V1}/integrations", tags=["integrations"]
@@ -12,10 +13,15 @@ integrations_router = APIRouter(
 
 
 @integrations_router.get("/")
+@require_authentication
 async def get_all_integrations(request: Request):
-    error_message, data, errors = IntegrationManagement.get_all_integrations(request)
+    error_message, data, errors = IntegrationManagement.get_all_integrations()
+    if not error_message:
+        status_code = 200
+    else:
+        status_code = 500
     return APIResponseFormat(
-        status_code=200,
+        status_code=status_code,
         message=error_message,
         data=data,
         errors=errors,
@@ -23,11 +29,17 @@ async def get_all_integrations(request: Request):
 
 
 @integrations_router.get("/{integration_uuid}")
+@require_authentication
 async def get_integration(request: Request, integration_uuid: str):
     error_message, data, errors = IntegrationManagement.get_integration_by_uuid(
-        request, integration_uuid
+        integration_uuid
     )
-    status_code = 200 if not error_message else 500
+    if not error_message:
+        status_code = 200
+    elif error_message == INTEGRATION_NOT_FOUND:
+        status_code = 404
+    else:
+        status_code = 500
     return APIResponseFormat(
         status_code=status_code,
         message=error_message,
@@ -40,7 +52,12 @@ async def get_integration(request: Request, integration_uuid: str):
 @require_authentication
 async def get_oauth_url(request: Request, platform: str):
     error_message, data, errors = IntegrationManagement.get_oauth_url(platform, request)
-    status_code = 200 if not error_message else 500
+    if not error_message:
+        status_code = 200
+    elif error_message == UNSUPPORTED_PLATFORM:
+        status_code = 400
+    else:
+        status_code = 500
     if status_code == 200:
         return RedirectResponse(url=data)
     return APIResponseFormat(
@@ -71,7 +88,7 @@ async def handle_oauth_callback(request: Request, platform: str, code: str):
 @require_authentication
 async def delete_integration(request: Request, integration_uuid: str):
     error_message, data, errors = IntegrationManagement.delete_integration(
-        request, integration_uuid
+        integration_uuid
     )
     status_code = 200 if not error_message else 500
     return APIResponseFormat(

@@ -30,6 +30,10 @@ class Integration(BaseModel):
         return cls.select_query().where(cls.uuid == uuid, cls.user == user).limit(1)
 
     @classmethod
+    def delete_by_uuid_for_user(cls, uuid, user):
+        return cls.soft_delete().where(cls.uuid == uuid, cls.user == user).execute()
+
+    @classmethod
     def create_integration(
         cls,
         user,
@@ -58,9 +62,7 @@ class Integration(BaseModel):
         return {
             "uuid": str(self.uuid),
             "platform": self.platform,
-            "status": "active"
-            if self.expires_at > datetime.now(timezone.utc)
-            else "inactive",
+            "status": "active" if self.expires_at > datetime.now() else "inactive",
             "token_type": self.token_type,
-            "created_at": self.created_at,
+            "created_at": self.created_at.isoformat(),
         }

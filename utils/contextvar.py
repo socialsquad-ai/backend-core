@@ -36,6 +36,7 @@ request_metadata = contextvars.ContextVar(
 context_json_post_payload = contextvars.ContextVar(
     "context_json_post_payload", default=JsonPayload.empty()
 )
+context_user = contextvars.ContextVar("context_user", default=None)
 
 
 def get_request_metadata() -> dict[str, Any]:
@@ -64,7 +65,7 @@ def get_request_json_post_payload() -> dict[str, Any]:
 
 async def set_context_json_post_payload(request: Request) -> None:
     # Do not set context json post payload for GET/DELETE requests
-    if request.method in ["GET", "DELETE"]:
+    if request.method in ["GET", "DELETE", "OPTIONS"]:
         return
     try:
         payload = await request.json()
@@ -79,6 +80,15 @@ async def set_context_json_post_payload(request: Request) -> None:
         context_json_post_payload.set(JsonPayload.empty())
 
 
+def set_context_user(user):
+    context_user.set(user)
+
+
+def get_context_user():
+    return context_user.get()
+
+
 def clear_request_metadata() -> None:
     request_metadata.set(RequestMetadata.empty())
     context_json_post_payload.set(JsonPayload.empty())
+    context_user.set(None)
