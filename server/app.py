@@ -5,14 +5,16 @@ from config.non_env import SERVER_INIT_LOG_MESSAGE
 from logger.logging import LoggerUtil
 from server.router import init_routers
 import traceback
+import taskiq_fastapi
 from controller.util import APIResponseFormat
 import uuid
 from utils.exceptions import CustomUnauthorized, CustomBadRequest
 from utils.contextvar import (
-    set_request_metadata,
     clear_request_metadata,
     set_context_json_post_payload,
+    set_request_metadata,
 )
+from .pg_broker import broker  # Import broker from the new module
 
 
 @asynccontextmanager
@@ -25,14 +27,23 @@ async def lifespan(app: FastAPI):
     LoggerUtil.create_info_log(
         "{}::Setting environment specific variables...".format(SERVER_INIT_LOG_MESSAGE)
     )
+    LoggerUtil.create_info_log(
+        "{}::Registering REST API routes...".format(SERVER_INIT_LOG_MESSAGE)
+    )
 
-    # Setting the config(DON'T remove the empty import!!) #
+    # Setting the config(DON'T remove the empty import!!)
     from config import env  # noqa: F401
 
     LoggerUtil.create_info_log(
         "{}::Connecting to database(s)...".format(SERVER_INIT_LOG_MESSAGE)
     )
     from data_adapter.db import ssq_db
+
+    if not broker.is_worker_process:
+        LoggerUtil.create_info_log(
+            "{}::Starting TaskIQ broker...".format(SERVER_INIT_LOG_MESSAGE)
+        )
+        await broker.startup()
 
     yield  # Server is running and handling requests here
 
@@ -45,6 +56,12 @@ async def lifespan(app: FastAPI):
         LoggerUtil.create_info_log(
             "{}::Database connections closed.".format(SERVER_INIT_LOG_MESSAGE)
         )
+
+    if not broker.is_worker_process:
+        LoggerUtil.create_info_log(
+            "{}::Shutting down TaskIQ broker...".format(SERVER_INIT_LOG_MESSAGE)
+        )
+        await broker.shutdown()
 
 
 app = FastAPI(title="API Service", lifespan=lifespan)
@@ -67,9 +84,8 @@ app.add_middleware(
 
 init_routers(app)
 
-LoggerUtil.create_info_log(
-    "{}::Registering REST API routes...".format(SERVER_INIT_LOG_MESSAGE)
-)
+# Initialize TaskIQ with the broker and FastAPI app
+taskiq_fastapi.init(broker, "server.app:app")
 
 
 # Middleware to add a unique ID to each request

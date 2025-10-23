@@ -1,10 +1,11 @@
 from data_adapter.db import BaseModel
-from playhouse.postgres_ext import CharField
+from playhouse.postgres_ext import CharField, BooleanField
 
 
 class Account(BaseModel):
     name = CharField(max_length=255, unique=True)
     email = CharField(max_length=255, unique=True)
+    approval_needed = BooleanField(default=False)
 
     class Meta:
         db_table = "accounts"
@@ -27,4 +28,5 @@ class Account(BaseModel):
         return {
             "name": self.name,
             "email": self.email,
+            "approval_needed": self.approval_needed,
         }
