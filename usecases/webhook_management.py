@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
 
-from data_adapter.account import Account
+from data_adapter.user import Account, User
 from data_adapter.personas import Persona
 from data_adapter.integration import Integration
 from data_adapter.posts import Post
@@ -49,6 +49,9 @@ class WebhookManagement:
         LoggerUtil.create_info_log(
             f"Starting processing for webhook {webhook_id}, comment {comment_id}"
         )
+        account_id = 2
+        persona_id = "34d5b364-8c69-4d2f-8d6c-2e57bf564f16"
+
         # Log the incoming webhook
         webhook_log = await cls._log_webhook(
             webhook_id=webhook_id,
@@ -56,6 +59,7 @@ class WebhookManagement:
             post_id=post_id,
             event_type="comment_created",
             payload=comment_data,
+            account_id=account_id,
         )
 
         try:
@@ -70,26 +74,26 @@ class WebhookManagement:
                 }
 
             # 2. Check if comment is within engagement period and time window
-            if not await cls._is_within_engagement_period(
-                comment_data, post, engagement_period_hours
-            ):
-                return {
-                    "status": "skipped",
-                    "reason": "Outside engagement period or time window",
-                }
+            # if not await cls._is_within_engagement_period(
+            #     comment_data, post, engagement_period_hours
+            # ):
+            #     return {
+            #         "status": "skipped",
+            #         "reason": "Outside engagement period or time window",
+            #     }
 
             # 3. Check if comment is offensive/abusive
-            if await cls._is_offensive_content(comment_data["text"], platform):
-                await cls._handle_offensive_comment(comment_id, platform, integration)
-                webhook_log.mark_completed({"action": "comment_deleted"})
-                return {"status": "completed", "action": "comment_deleted"}
+            # if await cls._is_offensive_content(comment_data["text"], platform):
+            #     await cls._handle_offensive_comment(comment_id, platform, integration)
+            #     webhook_log.mark_completed({"action": "comment_deleted"})
+            #     return {"status": "completed", "action": "comment_deleted"}
 
             # 4. Check if comment should be ignored
-            if await cls._should_ignore_comment(
-                comment_data["text"], platform, post.ignore_instructions
-            ):
-                webhook_log.mark_completed({"action": "comment_ignored"})
-                return {"status": "skipped", "action": "comment_ignored"}
+            # if await cls._should_ignore_comment(
+            #     comment_data["text"], platform, post.ignore_instructions
+            # ):
+            #     webhook_log.mark_completed({"action": "comment_ignored"})
+            #     return {"status": "skipped", "action": "comment_ignored"}
 
             # 5. Generate reply using persona
             reply = await cls._generate_reply(
@@ -101,8 +105,6 @@ class WebhookManagement:
             # 6. Handle reply based on account settings
             result = await cls._handle_reply(
                 account=account,
-                platform=platform,
-                post_id=post_id,
                 comment_id=comment_id,
                 reply=reply,
                 integration=integration,
@@ -125,13 +127,14 @@ class WebhookManagement:
         post_id: str,
         event_type: str,
         payload: Dict,
+        account_id: int,
     ) -> WebhookLog:
         """Log incoming webhook for auditing and retry purposes"""
         integration = (
             Integration.select()
-            .where(
-                (Integration.account == account_id) & (Integration.platform == platform)
-            )
+            .join(User, on=(User.id == Integration.user))
+            .join(Account, on=(Account.id == User.account))
+            .where((Account.id == account_id) & (Integration.platform == platform))
             .first()
         )
 
@@ -170,15 +173,15 @@ class WebhookManagement:
     ) -> Tuple[Optional[Post], Optional[Account], Optional[Integration]]:
         """Validate post, account and integration"""
         try:
-            account = Account.get_by_uuid(account_id).first()
-            if not account or not account.is_active:
+            account = Account.get_by_id(account_id)
+            if not account or account.is_deleted:
                 LoggerUtil.create_info_log(
                     f"Account {account_id} not found or inactive"
                 )
                 return None, None, None
 
-            post = Post.get_by_post_id(post_id).first()
-            if not post or not post.engagement_enabled:
+            post = Post.get_by_post_id(post_id)
+            if not post or not post[0].engagement_enabled:
                 LoggerUtil.create_info_log(
                     f"Post {post_id} not found or engagement not enabled"
                 )
@@ -186,11 +189,9 @@ class WebhookManagement:
 
             integration = (
                 Integration.select()
-                .where(
-                    (Integration.account == account)
-                    & (Integration.platform == platform)
-                )
-                .first()
+                .join(User, on=(User.id == Integration.user))
+                .join(Account, on=(Account.id == User.account))
+                .where((Account.id == account_id) & (Integration.platform == platform))
             )
 
             if not integration:
@@ -199,7 +200,7 @@ class WebhookManagement:
                 )
                 return None, None, None
 
-            return post, account, integration
+            return post[0], account, integration[0]
 
         except Exception as e:
             LoggerUtil.create_error_log(f"Error validating post and account: {str(e)}")
@@ -312,8 +313,6 @@ class WebhookManagement:
     async def _handle_reply(
         cls,
         account: Account,
-        platform: str,
-        post_id: str,
         comment_id: str,
         reply: str,
         integration: Integration,
@@ -336,13 +335,12 @@ class WebhookManagement:
 
             # Post reply directly if no approval needed
             LoggerUtil.create_info_log(f"Posting reply to comment {comment_id}")
-            # In a real implementation, call platform API to post the reply
-            # response = await platform_api.post_comment_reply(
-            #     access_token=integration.access_token,
-            #     post_id=post_id,
-            #     comment_id=comment_id,
-            #     text=reply
-            # )
+            import requests
+
+            requests.post(
+                f"https://graph.instagram.com/{comment_id}/replies?message={reply}",
+                headers={"Authorization": f"Bearer {integration.access_token}"},
+            )
 
             return {
                 "action": "reply_posted",

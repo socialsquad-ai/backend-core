@@ -72,8 +72,8 @@ class Persona(BaseModel):
         return cls.select_query().where(cls.account == account).count()
 
     @classmethod
-    def delete_by_uuid(cls, uuid):
-        return cls.soft_delete().where(cls.uuid == uuid).execute()
+    def get_by_uuid(cls, uuid):
+        return cls.select().where(cls.uuid == uuid)
 
     def get_details(self):
         return {

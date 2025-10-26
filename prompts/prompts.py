@@ -22,7 +22,7 @@ class PromptGenerator:
         self.platform = platform
         self.persona = persona
 
-    async def get_prompt_for_agent(self):
+    def get_prompt_for_agent(self):
         template = jinja2.Environment(
             loader=jinja2.FileSystemLoader("prompts")
         ).get_template(f"{AGENT_NAME_PROMPT_MAPPING[self.agent_name]}.j2")

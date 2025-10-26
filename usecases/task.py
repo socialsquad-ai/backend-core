@@ -5,6 +5,21 @@ from typing import Dict
 from config.non_env import PLATFORM_INSTAGRAM
 
 
+@broker.task
+async def process_meta_comment_change(webhook_data: Dict):
+    await WebhookManagement.handle_incoming_comment(
+        webhook_id=webhook_data["id"],
+        comment_data=webhook_data,
+        platform=PLATFORM_INSTAGRAM,
+        post_id=webhook_data["media"]["id"],
+        comment_id=webhook_data["id"],
+        parent_comment_id=webhook_data.get("parent_id", None),
+        author_id=webhook_data["from"]["id"],
+        author_username=webhook_data["from"]["username"],
+        comment=webhook_data["text"],
+    )
+
+
 async def process_meta_webhook(webhook_data: Dict):
     """
     Process incoming instagram webhook from Meta.
@@ -25,18 +40,3 @@ async def process_meta_webhook(webhook_data: Dict):
                 f"Enqueuing comment change task for id {entry['id']}"
             )
             await process_meta_comment_change.kiq(data)
-
-
-@broker.task
-async def process_meta_comment_change(webhook_data: Dict):
-    await WebhookManagement.handle_incoming_comment(
-        webhook_id=webhook_data["id"],
-        comment_data=webhook_data,
-        platform=PLATFORM_INSTAGRAM,
-        post_id=webhook_data["media"]["id"],
-        comment_id=webhook_data["id"],
-        parent_comment_id=webhook_data["parent_id"],
-        author_id=webhook_data["from"]["id"],
-        author_username=webhook_data["from"]["username"],
-        comment=webhook_data["text"],
-    )
