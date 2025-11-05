@@ -73,27 +73,44 @@ class WebhookManagement:
                     "reason": "Invalid post, account, or integration",
                 }
 
-            # 2. Check if comment is within engagement period and time window
-            # if not await cls._is_within_engagement_period(
-            #     comment_data, post, engagement_period_hours
-            # ):
-            #     return {
-            #         "status": "skipped",
-            #         "reason": "Outside engagement period or time window",
-            #     }
+            # 2. Check if comment from user's account -- ignore in that case
+            if author_id == integration.platform_user_id:
+                return {
+                    "status": "skipped",
+                    "reason": "Comment from user's account",
+                }
+
+            # 3. Check if post is enabled for engagement
+            if not post.engagement_enabled:
+                return {
+                    "status": "skipped",
+                    "reason": "Post engagement not enabled",
+                }
+
+            # 4. Check if comment is within engagement period and time window
+            engagement_period_hours = (
+                post.engagement_start_hours - post.engagement_end_hours
+            )
+            if not await cls._is_within_engagement_period(
+                comment_data, post, engagement_period_hours
+            ):
+                return {
+                    "status": "skipped",
+                    "reason": "Outside engagement period or time window",
+                }
 
             # 3. Check if comment is offensive/abusive
-            # if await cls._is_offensive_content(comment_data["text"], platform):
-            #     await cls._handle_offensive_comment(comment_id, platform, integration)
-            #     webhook_log.mark_completed({"action": "comment_deleted"})
-            #     return {"status": "completed", "action": "comment_deleted"}
+            if await cls._is_offensive_content(comment_data["text"], platform):
+                await cls._handle_offensive_comment(comment_id, platform, integration)
+                webhook_log.mark_completed({"action": "comment_deleted"})
+                return {"status": "completed", "action": "comment_deleted"}
 
             # 4. Check if comment should be ignored
-            # if await cls._should_ignore_comment(
-            #     comment_data["text"], platform, post.ignore_instructions
-            # ):
-            #     webhook_log.mark_completed({"action": "comment_ignored"})
-            #     return {"status": "skipped", "action": "comment_ignored"}
+            if await cls._should_ignore_comment(
+                comment_data["text"], platform, post.ignore_instructions
+            ):
+                webhook_log.mark_completed({"action": "comment_ignored"})
+                return {"status": "skipped", "action": "comment_ignored"}
 
             # 5. Generate reply using persona
             reply = await cls._generate_reply(
