@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     comment_approvals BOOLEAN DEFAULT FALSE,
     comment_approvals_delay_seconds INTEGER DEFAULT 0,
     comment_response_delay_seconds INTEGER DEFAULT 0,
-    comment_reply_depth INTEGER DEFAULT 1,
+    comment_reply_depth INTEGER DEFAULT 1
 );
 
 GRANT ALL PRIVILEGES ON TABLE accounts TO ssq_user;

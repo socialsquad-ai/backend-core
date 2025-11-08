@@ -9,7 +9,7 @@ CREATE TABLE persona_templates (
     description VARCHAR(255) NOT NULL,
     tone VARCHAR(255) NOT NULL,
     style VARCHAR(255) NOT NULL,
-    instructions TEXT NOT NULL,
+    instructions TEXT NOT NULL
 );
 
 GRANT ALL PRIVILEGES ON TABLE persona_templates TO ssq_user;

@@ -12,5 +12,5 @@ CREATE TABLE IF NOT EXISTS users (
     auth0_created_at TIMESTAMP  -- When user was created in Auth0
 );
 
-GRANT ALL PRIVILEGES ON TABLE IF NOT EXISTS users TO ssq_user;
-GRANT USAGE, SELECT ON SEQUENCE IF NOT EXISTS users_id_seq TO ssq_user;
+GRANT ALL PRIVILEGES ON TABLE users TO ssq_user;
+GRANT USAGE, SELECT ON SEQUENCE users_id_seq TO ssq_user;
