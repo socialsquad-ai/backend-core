@@ -6,9 +6,17 @@ from utils.util import is_valid_uuid_v4
 from peewee import IntegrityError
 import datetime
 from data_adapter.db import ssq_db
+from utils.contextvar import get_context_user
 
 
 class UserManagement:
+    @staticmethod
+    def get_profile(request: Request):
+        user = get_context_user()
+        if not user:
+            return RESOURCE_NOT_FOUND, None, None
+        return "", user.get_details(), None
+
     @staticmethod
     @ssq_db.atomic()
     def create_user(request: Request):
@@ -34,7 +42,9 @@ class UserManagement:
         except IntegrityError:
             return "", None, "User already exists"
         except Exception as e:
-            return "", None, e
+            # Convert exception to string to make it JSON serializable
+            error_message = str(e)
+            return "", None, error_message
 
     @staticmethod
     def get_user_by_email(request: Request):

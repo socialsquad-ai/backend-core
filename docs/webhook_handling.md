@@ -42,7 +42,7 @@ The webhook handling system consists of the following components:
 
 2. **Database Tables**
    The following database tables are required:
-   - `accounts`
+   - `users`
    - `integrations`
    - `persona_templates`
    - `personas`
@@ -77,7 +77,7 @@ Example webhook payload for Instagram comments:
     }]
   }],
   "object": "instagram",
-  "account_id": "account_123",
+  "user_id": "user_123",
   "persona_id": "persona_123"
 }
 ```
@@ -110,7 +110,7 @@ Monitor the following for system health:
 2. **Webhook Processing Failures**
    - Check the `error_message` in the `webhook_logs` table
    - Verify that the webhook payload matches the expected format
-   - Check if the associated account, integration, and persona exist
+   - Check if the associated user, integration, and persona exist
 
 3. **Task Queue Issues**
    - Ensure the TaskIQ worker processes are running

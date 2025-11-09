@@ -9,10 +9,10 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) NOT NULL,
     signup_method VARCHAR(50) NOT NULL DEFAULT 'email-password',  -- email-password, google, facebook, etc.
     email_verified BOOLEAN NOT NULL DEFAULT FALSE,
-    auth0_created_at TIMESTAMP  -- When user was created in Auth0
+    auth0_created_at TIMESTAMP,  -- When user was created in Auth0
     role VARCHAR(50) NOT NULL DEFAULT 'brand',
     content_categories JSON NOT NULL DEFAULT '[]',
-    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    status VARCHAR(50) NOT NULL DEFAULT 'active'
 );
 
 GRANT ALL PRIVILEGES ON TABLE users TO ssq_user;

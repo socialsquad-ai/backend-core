@@ -1,5 +1,6 @@
 from data_adapter.db import BaseModel
 from playhouse.postgres_ext import CharField, BooleanField, DateTimeField, JSONField
+from utils.util import parse_timestamp
 
 
 class User(BaseModel):
@@ -29,7 +30,8 @@ class User(BaseModel):
 
     @classmethod
     def get_by_auth0_user_id(cls, auth0_user_id):
-        return cls.select_query().where(cls.auth0_user_id == auth0_user_id).limit(1)
+        user = cls.select_query().where(cls.auth0_user_id == auth0_user_id).limit(1)
+        return user[0] if user else None
 
     @classmethod
     def get_or_create_user_from_auth0(
@@ -57,8 +59,10 @@ class User(BaseModel):
                 email=email,
                 signup_method=signup_method,
                 email_verified=email_verified,
-                auth0_created_at=auth0_created_at,
+                auth0_created_at=parse_timestamp(auth0_created_at),
                 status=status,
+                role='brand',  # Default role
+                content_categories=[],  # Default empty list
             )
         except Exception as e:
             raise e
@@ -82,4 +86,5 @@ class User(BaseModel):
             "uuid": str(self.uuid),
             "role": self.role,
             "content_categories": self.content_categories,
+            "status": self.status,
         }

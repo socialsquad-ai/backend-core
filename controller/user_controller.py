@@ -42,6 +42,16 @@ async def create_user(request: Request):
         errors=errors,
     ).get_json()
 
+@user_router.get("/profile")
+@require_authentication
+async def get_profile(request: Request):
+    error_message, data, errors = UserManagement.get_profile(request)
+    return APIResponseFormat(
+        status_code=200,
+        message=error_message,
+        data=data,
+        errors=errors,
+    ).get_json()
 
 @user_router.get("/{user_uuid}")
 @require_authentication
