@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS accounts (
     comment_approvals_delay_seconds INTEGER DEFAULT 0,
     comment_response_delay_seconds INTEGER DEFAULT 0,
     comment_reply_depth INTEGER DEFAULT 1,
+    role VARCHAR(255) DEFAULT 'USER',
+    content_categories JSONB DEFAULT '[]',
 );
 
 GRANT ALL PRIVILEGES ON TABLE accounts TO ssq_user;

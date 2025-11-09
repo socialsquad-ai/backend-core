@@ -1,6 +1,8 @@
 -- Create webhook_logs table for storing webhook events and their processing status
 CREATE TABLE IF NOT EXISTS webhook_logs (
     id SERIAL PRIMARY KEY,
+    uuid UUID NOT NULL DEFAULT gen_random_uuid(),
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     webhook_id VARCHAR(255) NOT NULL,
     integration_id INTEGER NOT NULL,
     post_id INTEGER,

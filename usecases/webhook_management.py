@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
 
-from data_adapter.user import Account, User
+from data_adapter.user import User
 from data_adapter.personas import Persona
 from data_adapter.integration import Integration
 from data_adapter.posts import Post
@@ -49,7 +49,6 @@ class WebhookManagement:
         LoggerUtil.create_info_log(
             f"Starting processing for webhook {webhook_id}, comment {comment_id}"
         )
-        account_id = 2
         persona_id = "34d5b364-8c69-4d2f-8d6c-2e57bf564f16"
 
         # Log the incoming webhook
@@ -59,15 +58,15 @@ class WebhookManagement:
             post_id=post_id,
             event_type="comment_created",
             payload=comment_data,
-            account_id=account_id,
+            user_id=user_id,
         )
 
         try:
             # 1. Check if post is selected for engagement
-            post, account, integration = await cls._validate_post_and_account(
-                post_id, platform, account_id
+            post, user, integration = await cls._validate_post_and_user(
+                post_id, platform, user_id
             )
-            if not all([post, account, integration]):
+            if not all([post, user, integration]):
                 return {
                     "status": "skipped",
                     "reason": "Invalid post, account, or integration",
@@ -121,7 +120,7 @@ class WebhookManagement:
 
             # 6. Handle reply based on account settings
             result = await cls._handle_reply(
-                account=account,
+                user=user,
                 comment_id=comment_id,
                 reply=reply,
                 integration=integration,
@@ -144,20 +143,19 @@ class WebhookManagement:
         post_id: str,
         event_type: str,
         payload: Dict,
-        account_id: int,
+        user_id: int,
     ) -> WebhookLog:
         """Log incoming webhook for auditing and retry purposes"""
         integration = (
             Integration.select()
             .join(User, on=(User.id == Integration.user))
-            .join(Account, on=(Account.id == User.account))
-            .where((Account.id == account_id) & (Integration.platform == platform))
+            .where((User.id == user_id) & (Integration.platform == platform))
             .first()
         )
 
         if not integration:
             raise ValueError(
-                f"No integration found for platform {platform} and account {account_id}"
+                f"No integration found for platform {platform} and user {user_id}"
             )
 
         # Get or create post record
@@ -185,16 +183,14 @@ class WebhookManagement:
         return webhook_log
 
     @classmethod
-    async def _validate_post_and_account(
-        cls, post_id: str, platform: str, account_id: str
-    ) -> Tuple[Optional[Post], Optional[Account], Optional[Integration]]:
-        """Validate post, account and integration"""
+    async def _validate_post_and_user(
+        cls, post_id: str, platform: str, user_id: str
+    ) -> Tuple[Optional[Post], Optional[User], Optional[Integration]]:
+        """Validate post, user and integration"""
         try:
-            account = Account.get_by_id(account_id)
-            if not account or account.is_deleted:
-                LoggerUtil.create_info_log(
-                    f"Account {account_id} not found or inactive"
-                )
+            user = User.get_by_id(user_id)
+            if not user or user.is_deleted:
+                LoggerUtil.create_info_log(f"User {user_id} not found or inactive")
                 return None, None, None
 
             post = Post.get_by_post_id(post_id)
@@ -207,20 +203,19 @@ class WebhookManagement:
             integration = (
                 Integration.select()
                 .join(User, on=(User.id == Integration.user))
-                .join(Account, on=(Account.id == User.account))
-                .where((Account.id == account_id) & (Integration.platform == platform))
+                .where((User.id == user_id) & (Integration.platform == platform))
             )
 
             if not integration:
                 LoggerUtil.create_info_log(
-                    f"No integration found for platform {platform} and account {account_id}"
+                    f"No integration found for platform {platform} and user {user_id}"
                 )
                 return None, None, None
 
-            return post[0], account, integration[0]
+            return post[0], user, integration[0]
 
         except Exception as e:
-            LoggerUtil.create_error_log(f"Error validating post and account: {str(e)}")
+            LoggerUtil.create_error_log(f"Error validating post and user: {str(e)}")
             return None, None, None
 
     @classmethod
@@ -329,15 +324,15 @@ class WebhookManagement:
     @classmethod
     async def _handle_reply(
         cls,
-        account: Account,
+        user: User,
         comment_id: str,
         reply: str,
         integration: Integration,
     ) -> Dict:
-        """Handle reply based on account settings"""
+        """Handle reply based on user settings"""
         try:
             # 7. Check if approval is needed
-            if account.approval_needed:
+            if user.approval_needed:
                 LoggerUtil.create_info_log(
                     f"Approval needed for reply to comment {comment_id}"
                 )

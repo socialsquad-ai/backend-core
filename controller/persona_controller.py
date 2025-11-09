@@ -34,17 +34,17 @@ async def get_persona_templates(request: Request):
 
 @persona_router.get("/")
 @require_authentication
-async def get_account_personas(
+async def get_personas(
     request: Request,
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
 ):
     """
-    Get paginated list of personas for the current account
+    Get paginated list of personas for the current user
     """
     user = get_context_user()
-    error_message, data, errors = PersonaManagement.get_account_personas(
-        user.account, page, page_size
+    error_message, data, errors = PersonaManagement.get_user_personas(
+        user, page, page_size
     )
     if not error_message:
         status_code = RESPONSE_200
@@ -68,21 +68,25 @@ async def get_account_personas(
         "tone": {"type": "string", "required": True},
         "style": {"type": "string", "required": True},
         "instructions": {"type": "string", "required": True},
+        "role": {"type": "string", "required": True},
+        "content_categories": {"type": "list", "required": True},
         "personal_details": {"type": "string", "required": False},
     }
 )
-async def create_account_persona(request: Request):
+async def create_persona(request: Request):
     """
-    Create a new persona for the current account
+    Create a new persona for the current user
     """
     user = get_context_user()
     payload = get_request_json_post_payload()
-    error_message, data, errors = PersonaManagement.create_account_persona(
-        account=user.account,
+    error_message, data, errors = PersonaManagement.create_persona(
+        user=user,
         name=payload["name"],
         tone=payload["tone"],
         style=payload["style"],
         instructions=payload["instructions"],
+        content_categories=payload["content_categories"],
+        role=payload["role"],
         personal_details=payload.get("personal_details"),
     )
     status_code = 201 if not error_message else 500
@@ -106,17 +110,17 @@ async def create_account_persona(request: Request):
         "personal_details": {"type": "string", "required": False},
     }
 )
-async def update_account_persona(
+async def update_persona(
     request: Request,
     persona_uuid: str,
 ):
     """
-    Update an existing persona for the current account
+    Update an existing persona for the current user
     """
     user = get_context_user()
     payload = get_request_json_post_payload()
-    error_message, data, errors = PersonaManagement.update_account_persona(
-        account=user.account, persona_uuid=persona_uuid, **payload
+    error_message, data, errors = PersonaManagement.update_persona(
+        user=user, persona_uuid=persona_uuid, **payload
     )
     if not error_message:
         status_code = 200
@@ -140,7 +144,7 @@ async def update_account_persona(
 
 @persona_router.delete("/{persona_uuid}")
 @require_authentication
-async def delete_account_persona(
+async def delete_persona(
     request: Request,
     persona_uuid: str,
 ):
@@ -148,9 +152,7 @@ async def delete_account_persona(
     Delete a persona (soft delete)
     """
     user = get_context_user()
-    error_message, data, errors = PersonaManagement.delete_account_persona(
-        persona_uuid, user.account
-    )
+    error_message, data, errors = PersonaManagement.delete_persona(persona_uuid, user)
     if error_message:
         status_code = (
             RESPONSE_404 if error_message == RESOURCE_NOT_FOUND else RESPONSE_500

@@ -1,6 +1,8 @@
 -- Create posts table for storing social media posts and their engagement settings
 CREATE TABLE IF NOT EXISTS posts (
     id SERIAL PRIMARY KEY,
+    uuid UUID NOT NULL DEFAULT gen_random_uuid(),
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     post_id VARCHAR(255) NOT NULL,
     integration_id INTEGER NOT NULL,
     ignore_instructions TEXT NOT NULL DEFAULT '',

@@ -27,17 +27,17 @@ def require_authentication(func):
 
         try:
             # Create Auth0Service instance and validate the token
-            # auth0_service = Auth0Service()
-            # token_payload = auth0_service.validate_token(auth_header)
+            auth0_service = Auth0Service()
+            token_payload = auth0_service.validate_token(auth_header)
 
             # Store user information in request state for potential use in the endpoint
-            # request.state.user = token_payload
-            # set_context_user(User.get_by_auth0_user_id(token_payload.get("sub")))
-            set_context_user(User.get_by_email("milind@socialsquad.ai").get())
+            request.state.user = token_payload
+            set_context_user(User.get_by_auth0_user_id(token_payload.get("sub")))
+            # set_context_user(User.get_by_email("milind@socialsquad.ai").get())
 
-            # LoggerUtil.create_info_log(
-            #     f"Authentication successful for user: {token_payload.get('sub', 'unknown')}"
-            # )
+            LoggerUtil.create_info_log(
+                f"Authentication successful for user: {token_payload.get('sub', 'unknown')}"
+            )
 
         except CustomUnauthorized:
             # Re-raise the exception as it's already properly formatted

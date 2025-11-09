@@ -1,6 +1,5 @@
 from data_adapter.db import BaseModel
-from playhouse.postgres_ext import CharField, TextField, ForeignKeyField
-from data_adapter.account import Account
+from playhouse.postgres_ext import CharField, TextField
 
 
 class PersonaTemplate(BaseModel):
@@ -34,15 +33,13 @@ class Persona(BaseModel):
     style = CharField()
     instructions = TextField()
     personal_details = TextField()
-    account = ForeignKeyField(Account, backref="personas")
 
     class Meta:
         db_table = "personas"
 
     @classmethod
-    def create_persona(cls, account, name, tone, style, instructions, personal_details):
+    def create_persona(cls, name, tone, style, instructions, personal_details):
         persona = cls.create(
-            account=account,
             name=name,
             tone=tone,
             style=style,
@@ -52,24 +49,21 @@ class Persona(BaseModel):
         return persona.refresh()
 
     @classmethod
-    def get_by_name_and_account(cls, name, account):
-        return (
-            cls.select_query().where(cls.name == name, cls.account == account).limit(1)
-        )
+    def get_by_name(cls, name):
+        return cls.select_query().where(cls.name == name).limit(1)
 
     @classmethod
-    def get_all_for_account(cls, account, page=1, page_size=10):
+    def get_all(cls, page=1, page_size=10):
         return (
             cls.select_query()
-            .where(cls.account == account)
             .order_by(cls.updated_at.desc())
             .limit(page_size)
             .offset((page - 1) * page_size)
         )
 
     @classmethod
-    def get_all_for_account_count(cls, account):
-        return cls.select_query().where(cls.account == account).count()
+    def get_all_count(cls):
+        return cls.select_query().count()
 
     @classmethod
     def get_by_uuid(cls, uuid):
