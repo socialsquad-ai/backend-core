@@ -12,7 +12,6 @@ import asyncio
 from typing import Dict, Type, Any
 import uuid
 from utils.contextvar import RequestMetadata
-from concurrent.futures import ThreadPoolExecutor
 import datetime
 from fastapi import Request
 from utils.exceptions import CustomUnauthorized
@@ -86,64 +85,6 @@ def singleton_class(cls):
                 if cls not in instances:
                     instances[cls] = cls(*args, **kwargs)
         return instances[cls]
-
-    return wrapper
-
-
-executor = ThreadPoolExecutor(max_workers=4)  # or as needed
-
-
-def run_in_background(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        current_metadata = get_request_metadata()
-        new_thread_id = str(uuid.uuid4())
-        new_metadata = RequestMetadata(
-            api_id=current_metadata["api_id"], thread_id=new_thread_id
-        )
-        LoggerUtil.create_info_log(
-            "Background job started with thread_id : {} and api_id : {}, timestamp :{}".format(
-                new_thread_id, current_metadata["api_id"], datetime.datetime.now()
-            )
-        )
-
-        def run_in_thread():
-            try:
-                set_request_metadata(new_metadata.to_dict())
-                return func(*args, **kwargs)
-            except Exception as e:
-                LoggerUtil.create_error_log(
-                    "Background job failed with thread_id : {} and api_id : {}, timestamp :{}".format(
-                        new_thread_id,
-                        current_metadata["api_id"],
-                        datetime.datetime.now(),
-                    )
-                )
-                raise e
-            finally:
-                # Clear context when job is done
-                clear_request_metadata()
-
-        if asyncio.iscoroutinefunction(func):
-
-            def async_runner():
-                try:
-                    set_request_metadata(new_metadata.to_dict())
-                    asyncio.run(func(*args, **kwargs))
-                except Exception:
-                    LoggerUtil.create_error_log(
-                        "Background job failed with thread_id : {} and api_id : {}, timestamp :{}".format(
-                            new_thread_id,
-                            current_metadata["api_id"],
-                            datetime.datetime.now(),
-                        )
-                    )
-                finally:
-                    clear_request_metadata()
-
-            executor.submit(async_runner)
-        else:
-            executor.submit(run_in_thread)
 
     return wrapper
 
