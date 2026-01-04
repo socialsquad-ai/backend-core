@@ -13,15 +13,26 @@ from utils.error_messages import (
 )
 from utils.contextvar import get_context_user, get_request_json_post_payload
 
-persona_router = APIRouter(prefix=f"{API_VERSION_V1}/personas", tags=["personas"])
+persona_router = APIRouter(
+    prefix=f"{API_VERSION_V1}/personas",
+    tags=["Personas"],
+)
 
 
-@persona_router.get("/templates")
+@persona_router.get(
+    "/templates",
+    summary="Get Persona Templates",
+    description="Retrieve all available persona templates that can be used as starting points for creating new personas.",
+    responses={
+        200: {"description": "List of persona templates retrieved successfully"},
+        401: {"description": "Authentication required"},
+        500: {"description": "Internal server error"},
+    },
+    openapi_extra={"security": [{"Auth0Bearer": []}]},
+)
 @require_authentication
 async def get_persona_templates(request: Request):
-    """
-    Get all persona templates
-    """
+    """Get all available persona templates."""
     error_message, data, errors = PersonaManagement.get_persona_templates()
     status_code = RESPONSE_200 if not error_message else RESPONSE_500
     return APIResponseFormat(
@@ -32,16 +43,25 @@ async def get_persona_templates(request: Request):
     ).get_json()
 
 
-@persona_router.get("/")
+@persona_router.get(
+    "/",
+    summary="List User Personas",
+    description="Retrieve a paginated list of personas for the currently authenticated user.",
+    responses={
+        200: {"description": "Paginated list of personas retrieved successfully"},
+        400: {"description": "Invalid pagination parameters"},
+        401: {"description": "Authentication required"},
+        500: {"description": "Internal server error"},
+    },
+    openapi_extra={"security": [{"Auth0Bearer": []}]},
+)
 @require_authentication
 async def get_personas(
     request: Request,
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
 ):
-    """
-    Get paginated list of personas for the current user
-    """
+    """Get paginated list of personas for the current user."""
     user = get_context_user()
     error_message, data, errors = PersonaManagement.get_user_personas(
         user, page, page_size
@@ -60,7 +80,18 @@ async def get_personas(
     ).get_json()
 
 
-@persona_router.post("/")
+@persona_router.post(
+    "/",
+    summary="Create Persona",
+    description="Create a new AI persona with specified tone, style, and behavior settings for automated social media interactions.",
+    responses={
+        201: {"description": "Persona created successfully"},
+        400: {"description": "Invalid request payload"},
+        401: {"description": "Authentication required"},
+        500: {"description": "Failed to create persona"},
+    },
+    openapi_extra={"security": [{"Auth0Bearer": []}]},
+)
 @require_authentication
 @validate_json_payload(
     {
@@ -74,9 +105,7 @@ async def get_personas(
     }
 )
 async def create_persona(request: Request):
-    """
-    Create a new persona for the current user
-    """
+    """Create a new AI persona for the current user."""
     user = get_context_user()
     payload = get_request_json_post_payload()
     error_message, data, errors = PersonaManagement.create_persona(
@@ -99,7 +128,19 @@ async def create_persona(request: Request):
     ).get_json()
 
 
-@persona_router.put("/{persona_uuid}")
+@persona_router.put(
+    "/{persona_uuid}",
+    summary="Update Persona",
+    description="Update an existing persona's settings including name, tone, style, and instructions.",
+    responses={
+        200: {"description": "Persona updated successfully"},
+        400: {"description": "Persona with this name already exists or invalid payload"},
+        401: {"description": "Authentication required"},
+        404: {"description": "Persona not found"},
+        500: {"description": "Failed to update persona"},
+    },
+    openapi_extra={"security": [{"Auth0Bearer": []}]},
+)
 @require_authentication
 @validate_json_payload(
     {
@@ -114,9 +155,7 @@ async def update_persona(
     request: Request,
     persona_uuid: str,
 ):
-    """
-    Update an existing persona for the current user
-    """
+    """Update an existing persona's configuration."""
     user = get_context_user()
     payload = get_request_json_post_payload()
     error_message, data, errors = PersonaManagement.update_persona(
@@ -142,15 +181,24 @@ async def update_persona(
     ).get_json()
 
 
-@persona_router.delete("/{persona_uuid}")
+@persona_router.delete(
+    "/{persona_uuid}",
+    summary="Delete Persona",
+    description="Delete a persona (soft delete). The persona will no longer be used for automated interactions.",
+    responses={
+        200: {"description": "Persona deleted successfully"},
+        401: {"description": "Authentication required"},
+        404: {"description": "Persona not found"},
+        500: {"description": "Failed to delete persona"},
+    },
+    openapi_extra={"security": [{"Auth0Bearer": []}]},
+)
 @require_authentication
 async def delete_persona(
     request: Request,
     persona_uuid: str,
 ):
-    """
-    Delete a persona (soft delete)
-    """
+    """Delete a persona (soft delete)."""
     user = get_context_user()
     error_message, data, errors = PersonaManagement.delete_persona(persona_uuid, user)
     if error_message:

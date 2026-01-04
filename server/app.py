@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from contextlib import asynccontextmanager
 from config.non_env import SERVER_INIT_LOG_MESSAGE
 from logger.logging import LoggerUtil
@@ -15,6 +16,35 @@ from utils.contextvar import (
     set_request_metadata,
 )
 from .pg_broker import broker  # Import broker from the new module
+
+
+# OpenAPI Tags metadata for Swagger documentation
+tags_metadata = [
+    {
+        "name": "Status",
+        "description": "Health check and system status endpoints for monitoring service availability.",
+    },
+    {
+        "name": "Users",
+        "description": "User management operations including profile retrieval and user creation. Internal endpoints use API key authentication.",
+    },
+    {
+        "name": "Onboarding",
+        "description": "User onboarding flow to set up initial persona and preferences.",
+    },
+    {
+        "name": "Integrations",
+        "description": "Social media platform integrations management. Handles OAuth flows and connection status.",
+    },
+    {
+        "name": "Personas",
+        "description": "AI persona configuration for automated social media interactions. Manage tone, style, and behavior settings.",
+    },
+    {
+        "name": "Webhooks",
+        "description": "Webhook endpoints for receiving events from external platforms (e.g., Meta/Facebook). These endpoints use platform-specific verification.",
+    },
+]
 
 
 @asynccontextmanager
@@ -64,7 +94,15 @@ async def lifespan(app: FastAPI):
         await broker.shutdown()
 
 
-app = FastAPI(title="API Service", lifespan=lifespan)
+app = FastAPI(
+    title="Social Squad API",
+    description="Backend API for Social Squad - AI-powered social media management platform. Automate engagement, manage personas, and integrate with social media platforms.",
+    version="1.0.0",
+    lifespan=lifespan,
+    openapi_tags=tags_metadata,
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
 
 # Add CORS middleware
 app.add_middleware(
@@ -135,3 +173,41 @@ async def custom_bad_request_handler(request: Request, exc: CustomBadRequest):
         data=None,
         errors=exc.errors,
     ).get_json()
+
+
+def custom_openapi():
+    """Generate custom OpenAPI schema with security schemes."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+        tags=tags_metadata,
+    )
+    # Add security schemes
+    openapi_schema["components"]["securitySchemes"] = {
+        "Auth0Bearer": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "Auth0 JWT token. Obtain from Auth0 authentication flow.",
+        },
+        "InternalAPIKey": {
+            "type": "http",
+            "scheme": "bearer",
+            "description": "Internal API key for service-to-service authentication.",
+        },
+        "MetaWebhookVerification": {
+            "type": "apiKey",
+            "in": "query",
+            "name": "hub.verify_token",
+            "description": "Meta webhook verification token passed as query parameter.",
+        },
+    }
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi

@@ -8,20 +8,28 @@ from usecases.task import process_meta_webhook
 
 webhook_router = APIRouter(
     prefix=f"{API_VERSION_V1}/webhooks",
-    tags=["webhook"],
+    tags=["Webhooks"],
 )
 
 
-@webhook_router.get("/meta", response_model=None)
+@webhook_router.get(
+    "/meta",
+    summary="Meta Webhook Verification",
+    description="Handle GET request from Meta for webhook verification during initial setup. Meta sends hub.mode, hub.verify_token, and hub.challenge parameters. Returns the challenge token if verification succeeds.",
+    response_model=None,
+    responses={
+        200: {"description": "Webhook verified successfully, returns challenge token"},
+        400: {"description": "Missing required query parameters"},
+        403: {"description": "Invalid verification token or mode"},
+    },
+    openapi_extra={"security": [{"MetaWebhookVerification": []}]},
+)
 async def verify_webhook(
     hub_mode: Optional[str] = Query(default=None, alias="hub.mode"),
     hub_verify_token: Optional[str] = Query(default=None, alias="hub.verify_token"),
     hub_challenge: Optional[str] = Query(default=None, alias="hub.challenge"),
 ):
-    """
-    Handle GET request from Meta for webhook verification.
-    This endpoint is called during the initial webhook setup.
-    """
+    """Verify Meta webhook subscription during initial setup."""
     if hub_mode is None or hub_verify_token is None or hub_challenge is None:
         LoggerUtil.create_error_log("Webhook verification failed: Missing parameters")
         return Response(status_code=status.HTTP_400_BAD_REQUEST)
@@ -38,11 +46,17 @@ async def verify_webhook(
     return Response(content=hub_challenge, media_type="text/plain")
 
 
-@webhook_router.post("/meta")
+@webhook_router.post(
+    "/meta",
+    summary="Receive Meta Webhook Events",
+    description="Handle POST requests from Meta for webhook events (comments, reactions, etc.). Events are processed asynchronously via TaskIQ. No authentication required as Meta signs requests.",
+    responses={
+        200: {"description": "Webhook received and queued for processing"},
+        500: {"description": "Failed to process or queue webhook"},
+    },
+)
 async def accept_meta_webhook(request: Request):
-    """
-    Handle POST requests from Meta for webhook events.
-    """
+    """Receive and process Meta webhook events asynchronously."""
     webhook_data = await request.json()
     try:
         # Log the incoming webhook data

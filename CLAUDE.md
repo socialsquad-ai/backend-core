@@ -155,3 +155,105 @@ Key models in `data_adapter/`:
 - Test framework: pytest
 - Test files located in `tests/` directory
 - Database setup required before running tests
+
+## API Documentation (Swagger/OpenAPI)
+
+### Accessing API Documentation
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+- **OpenAPI JSON**: http://localhost:8000/openapi.json
+
+### Security Schemes
+The API uses three authentication methods documented in Swagger:
+
+1. **Auth0Bearer**: JWT tokens from Auth0 for user authentication
+2. **InternalAPIKey**: Bearer token for service-to-service calls
+3. **MetaWebhookVerification**: Query parameter verification for Meta webhooks
+
+### Adding Swagger Documentation to New Endpoints
+
+When creating new API endpoints, follow this pattern to ensure they appear correctly in Swagger:
+
+```python
+from fastapi import APIRouter
+
+router = APIRouter(
+    prefix="/v1/resource",
+    tags=["ResourceName"],  # Must match a tag in server/app.py tags_metadata
+)
+
+@router.get(
+    "/",
+    summary="Short Action Description",  # Shows in endpoint list
+    description="Detailed description of what this endpoint does.",
+    responses={
+        200: {"description": "Success response description"},
+        400: {"description": "Bad request description"},
+        401: {"description": "Authentication required"},
+        404: {"description": "Resource not found"},
+        500: {"description": "Internal server error"},
+    },
+    openapi_extra={"security": [{"Auth0Bearer": []}]},  # Or InternalAPIKey, or omit for public
+)
+@require_authentication  # Decorator must come after route decorator
+async def get_resource(request: Request):
+    """Docstring becomes the endpoint description if no description param."""
+    pass
+```
+
+### Authentication Documentation Patterns
+
+**User-authenticated endpoints** (Auth0 JWT):
+```python
+@router.get(
+    "/",
+    openapi_extra={"security": [{"Auth0Bearer": []}]},
+)
+@require_authentication
+async def endpoint():
+    pass
+```
+
+**Internal service endpoints** (API Key):
+```python
+@router.post(
+    "/",
+    openapi_extra={"security": [{"InternalAPIKey": []}]},
+)
+@require_internal_authentication
+async def endpoint():
+    pass
+```
+
+**Public endpoints** (no auth, like OAuth callbacks):
+```python
+@router.get("/callback")  # No openapi_extra security
+async def callback():
+    pass
+```
+
+**Webhook endpoints** (platform-specific verification):
+```python
+@router.get(
+    "/webhook",
+    openapi_extra={"security": [{"MetaWebhookVerification": []}]},
+)
+async def verify_webhook():
+    pass
+```
+
+### Adding New Tags
+
+If creating a new controller domain, add a tag to `tags_metadata` in `server/app.py`:
+
+```python
+tags_metadata = [
+    # ... existing tags
+    {
+        "name": "NewDomain",
+        "description": "Description of what this API group handles.",
+    },
+]
+```
+
+Then use `tags=["NewDomain"]` in your `APIRouter`.

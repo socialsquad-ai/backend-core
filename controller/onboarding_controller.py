@@ -9,11 +9,23 @@ from utils.status_codes import RESPONSE_200, RESPONSE_500
 from utils.contextvar import get_context_user, get_request_json_post_payload
 
 onboarding_router = APIRouter(
-    prefix=f"{API_VERSION_V1}/onboarding", tags=["onboarding"]
+    prefix=f"{API_VERSION_V1}/onboarding",
+    tags=["Onboarding"],
 )
 
 
-@onboarding_router.post("/")
+@onboarding_router.post(
+    "/",
+    summary="Complete User Onboarding",
+    description="Complete the onboarding process for a new user by creating their initial AI persona. This sets up the user's preferences for automated social media interactions.",
+    responses={
+        200: {"description": "User onboarded successfully with initial persona created"},
+        400: {"description": "Invalid request payload"},
+        401: {"description": "Authentication required"},
+        500: {"description": "Failed to complete onboarding"},
+    },
+    openapi_extra={"security": [{"Auth0Bearer": []}]},
+)
 @require_authentication
 @validate_json_payload(
     {
@@ -27,9 +39,7 @@ onboarding_router = APIRouter(
     }
 )
 async def onboard_user(request: Request):
-    """
-    Onboard a new user
-    """
+    """Complete user onboarding with initial persona setup."""
     user = get_context_user()
     payload = get_request_json_post_payload()
     error_message, data, errors = OnboardingManagement.onboard_user(
