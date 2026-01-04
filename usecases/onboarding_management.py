@@ -17,7 +17,7 @@ class OnboardingManagement:
         instructions: str,
         role: str,
         content_categories: list,
-        personal_details: str | None = None,
+        personal_details: Optional[str] = None,
     ) -> Tuple[str, Optional[Dict[str, Any]], Optional[str]]:
         """
         Create a new persona for the current user and update user fields atomically.
