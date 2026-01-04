@@ -307,7 +307,7 @@ class TestSetContextJsonPostPayload:
         # Cleanup
         clear_request_metadata()
 
-    @patch("utils.contextvar.LoggerUtil.create_error_log")
+    @patch("logger.logging.LoggerUtil.create_error_log")
     async def test_set_context_json_post_payload_handles_json_exception(self, mock_logger):
         # Arrange
         mock_request = Mock(spec=Request)

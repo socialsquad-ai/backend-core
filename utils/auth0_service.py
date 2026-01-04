@@ -101,6 +101,9 @@ class Auth0Service:
             LoggerUtil.create_info_log(f"Token validated successfully for user: {payload.get('sub', 'unknown')}")
             return payload
 
+        except CustomUnauthorized:
+            # Re-raise CustomUnauthorized exceptions (e.g., from _get_signing_key)
+            raise
         except jwt.ExpiredSignatureError:
             LoggerUtil.create_error_log("Token has expired")
             raise CustomUnauthorized(detail="Token has expired")

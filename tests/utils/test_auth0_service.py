@@ -173,11 +173,13 @@ class TestGetSigningKey:
 
         mock_get_header.return_value = {"kid": "test-key-id"}
 
-        # Simulate RSA key components
-        mock_base64_decode.side_effect = [
-            b"\x00\x01\x00\x01",  # n value (example)
-            b"\x01\x00\x01",  # e value (example)
-        ]
+        # Simulate RSA key components (realistic 256-byte modulus for 2048-bit key)
+        # n: A realistic RSA modulus (must be larger than e)
+        n_bytes = b"\x00\xc0" + b"\xff" * 254  # ~2048 bits
+        # e: Standard RSA exponent (65537 = 0x010001)
+        e_bytes = b"\x01\x00\x01"
+
+        mock_base64_decode.side_effect = [n_bytes, e_bytes]
 
         mock_response = Mock()
         mock_response.json.return_value = {"keys": [{"kid": "test-key-id", "kty": "RSA", "n": "AQAB", "e": "AQAB"}]}

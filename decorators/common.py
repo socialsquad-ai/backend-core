@@ -45,14 +45,11 @@ def validate_json_payload(payload_validation_schema: dict):
 
 def validate_query_params(func):
     # TODO :: Add the logic to validate the query params
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            return await func(*args, **kwargs)
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        return await func(*args, **kwargs)
 
-        return wrapper
-
-    return decorator
+    return wrapper
 
 
 def singleton_class(cls):
