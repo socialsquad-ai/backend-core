@@ -21,7 +21,7 @@ class OnboardingManagement:
         """
         Create a new persona for the current user and update user fields atomically.
         Both operations happen within a single transaction - if either fails, both are rolled back.
-        
+
         Returns:
             Tuple of (error_message, data, errors):
             - error_message: Empty string if successful, error message otherwise

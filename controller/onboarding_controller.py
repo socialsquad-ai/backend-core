@@ -19,7 +19,9 @@ onboarding_router = APIRouter(
     summary="Complete User Onboarding",
     description="Complete the onboarding process for a new user by creating their initial AI persona. This sets up the user's preferences for automated social media interactions.",
     responses={
-        200: {"description": "User onboarded successfully with initial persona created"},
+        200: {
+            "description": "User onboarded successfully with initial persona created"
+        },
         400: {"description": "Invalid request payload"},
         401: {"description": "Authentication required"},
         500: {"description": "Failed to complete onboarding"},

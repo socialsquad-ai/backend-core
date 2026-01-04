@@ -134,7 +134,9 @@ async def create_persona(request: Request):
     description="Update an existing persona's settings including name, tone, style, and instructions.",
     responses={
         200: {"description": "Persona updated successfully"},
-        400: {"description": "Persona with this name already exists or invalid payload"},
+        400: {
+            "description": "Persona with this name already exists or invalid payload"
+        },
         401: {"description": "Authentication required"},
         404: {"description": "Persona not found"},
         500: {"description": "Failed to update persona"},

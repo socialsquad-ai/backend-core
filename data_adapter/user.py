@@ -61,7 +61,7 @@ class User(BaseModel):
                 email_verified=email_verified,
                 auth0_created_at=parse_timestamp(auth0_created_at),
                 status=status,
-                role='brand',  # Default role
+                role="brand",  # Default role
                 content_categories=[],  # Default empty list
             )
         except Exception as e:

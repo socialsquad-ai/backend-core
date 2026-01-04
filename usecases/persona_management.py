@@ -54,7 +54,7 @@ class PersonaManagement:
     ) -> Tuple[str, Optional[Dict[str, Any]], Optional[str]]:
         """
         Create a new persona for a user.
-        
+
         Returns:
             Tuple of (error_message, data, errors):
             - error_message: Empty string if successful, error message otherwise
@@ -66,7 +66,7 @@ class PersonaManagement:
             persona = Persona.get_by_name_and_user(name, user)
             if persona:
                 return PERSONA_ALREADY_EXISTS, None, None
-            
+
             # Create the persona
             persona = Persona.create_persona(
                 user=user,

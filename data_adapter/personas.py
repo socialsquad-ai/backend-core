@@ -41,7 +41,9 @@ class Persona(BaseModel):
         db_table = "personas"
 
     @classmethod
-    def create_persona(cls, user: User, name, tone, style, instructions, personal_details):
+    def create_persona(
+        cls, user: User, name, tone, style, instructions, personal_details
+    ):
         persona = cls.create(
             user=user,
             name=name,
