@@ -1,6 +1,6 @@
 from logger.logging import LoggerUtil
 from server.pg_broker import broker
-from usecases.webhook_management import WebhookManagement
+from usecases.webhook_management import (WebhookManagement)
 from typing import Dict
 from config.non_env import PLATFORM_INSTAGRAM
 
