@@ -34,6 +34,15 @@ class Integration(BaseModel):
         return cls.soft_delete().where(cls.uuid == uuid, cls.user == user).execute()
 
     @classmethod
+    def get_by_platform_user_id(cls, platform_user_id: str, platform: str):
+        """Get integration by platform user ID and platform type."""
+        return (
+            cls.select_query()
+            .where(cls.platform_user_id == platform_user_id, cls.platform == platform)
+            .first()
+        )
+
+    @classmethod
     def create_integration(
         cls,
         user,

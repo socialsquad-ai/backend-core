@@ -22,9 +22,10 @@ class WebhookManagement:
         webhook_id: str,
         comment_data: Dict,
         platform: str,
+        platform_user_id: str,
         post_id: str,
         comment_id: str,
-        parent_comment_id: str,
+        parent_comment_id: Optional[str],
         author_id: str,
         author_username: str,
         comment: str,
@@ -36,9 +37,10 @@ class WebhookManagement:
             webhook_id: Unique ID for the webhook event
             comment_data: Dictionary containing comment details including 'text'
             platform: The social media platform (e.g., 'instagram', 'youtube')
+            platform_user_id: The platform's user ID (e.g., Instagram Business Account ID)
             post_id: The ID of the post where the comment was made
             comment_id: The ID of the comment
-            parent_comment_id: The ID of the parent comment
+            parent_comment_id: The ID of the parent comment (if replying to a comment)
             author_id: The ID of the comment author
             author_username: The username of the comment author
             comment: The comment text
@@ -49,16 +51,31 @@ class WebhookManagement:
         LoggerUtil.create_info_log(
             f"Starting processing for webhook {webhook_id}, comment {comment_id}"
         )
+
+        # Look up integration and user from platform_user_id
+        integration = Integration.get_by_platform_user_id(platform_user_id, platform)
+        if not integration:
+            LoggerUtil.create_error_log(
+                f"No integration found for platform_user_id {platform_user_id} "
+                f"on platform {platform}"
+            )
+            return {
+                "status": "error",
+                "reason": f"No integration found for platform_user_id {platform_user_id}",
+            }
+
+        user = integration.user
+        user_id = user.id
+
         persona_id = "34d5b364-8c69-4d2f-8d6c-2e57bf564f16"
 
         # Log the incoming webhook
         webhook_log = await cls._log_webhook(
             webhook_id=webhook_id,
-            platform=platform,
             post_id=post_id,
             event_type="comment_created",
             payload=comment_data,
-            user_id=user_id,
+            integration=integration,
         )
 
         try:
@@ -139,25 +156,12 @@ class WebhookManagement:
     async def _log_webhook(
         cls,
         webhook_id: str,
-        platform: str,
         post_id: str,
         event_type: str,
         payload: Dict,
-        user_id: int,
+        integration: Integration,
     ) -> WebhookLog:
-        """Log incoming webhook for auditing and retry purposes"""
-        integration = (
-            Integration.select()
-            .join(User, on=(User.id == Integration.user))
-            .where((User.id == user_id) & (Integration.platform == platform))
-            .first()
-        )
-
-        if not integration:
-            raise ValueError(
-                f"No integration found for platform {platform} and user {user_id}"
-            )
-
+        """Log incoming webhook for auditing and retry purposes."""
         # Get or create post record
         post, _ = Post.get_or_create(
             post_id=post_id,

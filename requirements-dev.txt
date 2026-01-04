@@ -1,0 +1,12 @@
+# Development dependencies
+# Install with: pip install -r requirements-dev.txt
+
+# Include production dependencies
+-r requirements.txt
+
+# Pre-commit hooks
+pre-commit==4.0.1
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.24.0
