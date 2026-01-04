@@ -1,13 +1,13 @@
 import copy
+import re
 import string
 import uuid
-import re
 
 import cerberus
 from cerberus import errors as cerberus_errors
 
+from config.non_env import FILTER_DATE_FORMAT, URL_REGEX
 from utils.util import sanitize_string_input
-from config.non_env import URL_REGEX, FILTER_DATE_FORMAT
 
 
 class CustomErrorHandler(cerberus_errors.BasicErrorHandler):
@@ -63,9 +63,7 @@ class CustomValidator(cerberus.Validator):
             schema = copy.deepcopy(schema)
             self.populate_custom_messages(schema)
             args = [schema] + list(args[1:])
-        kwargs["error_handler"] = CustomErrorHandler(
-            custom_messages=self.custom_messages
-        )
+        kwargs["error_handler"] = CustomErrorHandler(custom_messages=self.custom_messages)
         super().__init__(*args, **kwargs)
         self.custom_messages = {}
         self._allowed_func_caches = {}
@@ -111,13 +109,7 @@ class CustomRules:
         uppercase_check = len(set(string.ascii_uppercase).intersection(set(value))) > 0
         digits_check = len(set(string.digits).intersection(set(value))) > 0
         punctuation_check = len(set(string.punctuation).intersection(set(value))) > 0
-        if not (
-            length_check
-            and lowercase_check
-            and uppercase_check
-            and digits_check
-            and punctuation_check
-        ):
+        if not (length_check and lowercase_check and uppercase_check and digits_check and punctuation_check):
             error(field, "Invalid password")
 
     @staticmethod
@@ -143,8 +135,7 @@ class CustomRules:
         elif not value.strip():
             error(
                 field,
-                "This voicemail greeting name is invalid. Please enter a valid name and"
-                " try again",
+                "This voicemail greeting name is invalid. Please enter a valid name and try again",
             )
 
     @staticmethod
@@ -154,9 +145,7 @@ class CustomRules:
         elif not re.search(URL_REGEX, value):
             error(
                 field,
-                "The value provided for {} is not an URL. Please provide a valid URL".format(
-                    field
-                ),
+                "The value provided for {} is not an URL. Please provide a valid URL".format(field),
             )
 
     @staticmethod

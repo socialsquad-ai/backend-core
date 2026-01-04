@@ -1,6 +1,7 @@
-from config.env import APP_ENVIRONMENT
-import uuid
 import datetime
+import uuid
+
+from config.env import APP_ENVIRONMENT
 
 
 def is_local_env():

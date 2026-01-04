@@ -1,12 +1,12 @@
-from fastapi import APIRouter
-from usecases.user_management import UserManagement
-from decorators.user import require_authentication
-from decorators.common import validate_json_payload, require_internal_authentication
-from fastapi import Request
-from controller.util import APIResponseFormat
+from fastapi import APIRouter, Request
+
 from config.non_env import API_VERSION_V1
-from utils.error_messages import RESOURCE_NOT_FOUND, INVALID_RESOURCE_ID
-from utils.status_codes import RESPONSE_404, RESPONSE_400, RESPONSE_409
+from controller.util import APIResponseFormat
+from decorators.common import require_internal_authentication, validate_json_payload
+from decorators.user import require_authentication
+from usecases.user_management import UserManagement
+from utils.error_messages import INVALID_RESOURCE_ID, RESOURCE_NOT_FOUND
+from utils.status_codes import RESPONSE_400, RESPONSE_404, RESPONSE_409
 
 user_router = APIRouter(
     prefix=f"{API_VERSION_V1}/users",

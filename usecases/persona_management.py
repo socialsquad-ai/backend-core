@@ -1,12 +1,13 @@
-from typing import Tuple, Optional, Dict, Any
+from typing import Any, Dict, Optional, Tuple
+
 from data_adapter.personas import Persona, PersonaTemplate
 from data_adapter.user import User
+from logger.logging import LoggerUtil
 from utils.error_messages import (
-    RESOURCE_NOT_FOUND,
     INVALID_PAGINATION_PARAMETERS,
     PERSONA_ALREADY_EXISTS,
+    RESOURCE_NOT_FOUND,
 )
-from logger.logging import LoggerUtil
 
 
 class PersonaManagement:
@@ -36,9 +37,7 @@ class PersonaManagement:
                 "total": total,
                 "page": page,
                 "page_size": page_size,
-                "total_pages": (total + page_size - 1) // page_size
-                if page_size > 0
-                else 0,
+                "total_pages": (total + page_size - 1) // page_size if page_size > 0 else 0,
             },
             None,
         )

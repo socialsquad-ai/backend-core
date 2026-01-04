@@ -1,5 +1,6 @@
+from playhouse.postgres_ext import BooleanField, CharField, DateTimeField, JSONField
+
 from data_adapter.db import BaseModel
-from playhouse.postgres_ext import CharField, BooleanField, DateTimeField, JSONField
 from utils.util import parse_timestamp
 
 
@@ -7,9 +8,7 @@ class User(BaseModel):
     auth0_user_id = CharField(unique=True)  # Auth0 user ID
     name = CharField(null=True)
     email = CharField()
-    signup_method = CharField(
-        default="email-password"
-    )  # email-password, google, facebook, etc.
+    signup_method = CharField(default="email-password")  # email-password, google, facebook, etc.
     email_verified = BooleanField(default=False)
     auth0_created_at = DateTimeField(null=True)  # When user was created in Auth0
     role = CharField(null=False)
@@ -78,11 +77,7 @@ class User(BaseModel):
             "email": self.email,
             "signup_method": self.signup_method,
             "email_verified": self.email_verified,
-            "created_at": (
-                self.auth0_created_at.isoformat()
-                if self.auth0_created_at
-                else self.created_at.isoformat()
-            ),
+            "created_at": (self.auth0_created_at.isoformat() if self.auth0_created_at else self.created_at.isoformat()),
             "uuid": str(self.uuid),
             "role": self.role,
             "content_categories": self.content_categories,

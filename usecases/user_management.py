@@ -1,12 +1,13 @@
-from data_adapter.user import User
-from utils.contextvar import get_request_json_post_payload
-from fastapi import Request
-from utils.error_messages import RESOURCE_NOT_FOUND, INVALID_RESOURCE_ID
-from utils.util import is_valid_uuid_v4
-from peewee import IntegrityError
 import datetime
+
+from fastapi import Request
+from peewee import IntegrityError
+
 from data_adapter.db import ssq_db
-from utils.contextvar import get_context_user
+from data_adapter.user import User
+from utils.contextvar import get_context_user, get_request_json_post_payload
+from utils.error_messages import INVALID_RESOURCE_ID, RESOURCE_NOT_FOUND
+from utils.util import is_valid_uuid_v4
 
 
 class UserManagement:
@@ -26,9 +27,7 @@ class UserManagement:
         name = payload.get("name", email.split("@")[0])
         signup_method = payload["signup_method"]
         email_verified = payload["email_verified"]
-        auth0_created_at = payload.get(
-            "auth0_created_at", datetime.datetime.now(datetime.timezone.utc).isoformat()
-        )
+        auth0_created_at = payload.get("auth0_created_at", datetime.datetime.now(datetime.timezone.utc).isoformat())
         try:
             user = User.get_or_create_user_from_auth0(
                 auth0_user_id,

@@ -1,22 +1,24 @@
+import traceback
+import uuid
+from contextlib import asynccontextmanager
+
+import taskiq_fastapi
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from contextlib import asynccontextmanager
+
 from config.non_env import SERVER_INIT_LOG_MESSAGE
+from controller.util import APIResponseFormat
 from logger.logging import LoggerUtil
 from server.router import init_routers
-import traceback
-import taskiq_fastapi
-from controller.util import APIResponseFormat
-import uuid
-from utils.exceptions import CustomUnauthorized, CustomBadRequest
 from utils.contextvar import (
     clear_request_metadata,
     set_context_json_post_payload,
     set_request_metadata,
 )
-from .pg_broker import broker  # Import broker from the new module
+from utils.exceptions import CustomBadRequest, CustomUnauthorized
 
+from .pg_broker import broker  # Import broker from the new module
 
 # OpenAPI Tags metadata for Swagger documentation
 tags_metadata = [
@@ -51,46 +53,30 @@ tags_metadata = [
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events"""
     # Startup
-    LoggerUtil.create_info_log(
-        "{}::Starting the app server...".format(SERVER_INIT_LOG_MESSAGE)
-    )
-    LoggerUtil.create_info_log(
-        "{}::Setting environment specific variables...".format(SERVER_INIT_LOG_MESSAGE)
-    )
-    LoggerUtil.create_info_log(
-        "{}::Registering REST API routes...".format(SERVER_INIT_LOG_MESSAGE)
-    )
+    LoggerUtil.create_info_log("{}::Starting the app server...".format(SERVER_INIT_LOG_MESSAGE))
+    LoggerUtil.create_info_log("{}::Setting environment specific variables...".format(SERVER_INIT_LOG_MESSAGE))
+    LoggerUtil.create_info_log("{}::Registering REST API routes...".format(SERVER_INIT_LOG_MESSAGE))
 
     # Setting the config(DON'T remove the empty import!!)
     from config import env  # noqa: F401
 
-    LoggerUtil.create_info_log(
-        "{}::Connecting to database(s)...".format(SERVER_INIT_LOG_MESSAGE)
-    )
+    LoggerUtil.create_info_log("{}::Connecting to database(s)...".format(SERVER_INIT_LOG_MESSAGE))
     from data_adapter.db import ssq_db
 
     if not broker.is_worker_process:
-        LoggerUtil.create_info_log(
-            "{}::Starting TaskIQ broker...".format(SERVER_INIT_LOG_MESSAGE)
-        )
+        LoggerUtil.create_info_log("{}::Starting TaskIQ broker...".format(SERVER_INIT_LOG_MESSAGE))
         await broker.startup()
 
     yield  # Server is running and handling requests here
 
     # Shutdown
-    LoggerUtil.create_info_log(
-        "{}::Shutting down the app server...".format(SERVER_INIT_LOG_MESSAGE)
-    )
+    LoggerUtil.create_info_log("{}::Shutting down the app server...".format(SERVER_INIT_LOG_MESSAGE))
     if not ssq_db.is_closed():
         ssq_db.close()
-        LoggerUtil.create_info_log(
-            "{}::Database connections closed.".format(SERVER_INIT_LOG_MESSAGE)
-        )
+        LoggerUtil.create_info_log("{}::Database connections closed.".format(SERVER_INIT_LOG_MESSAGE))
 
     if not broker.is_worker_process:
-        LoggerUtil.create_info_log(
-            "{}::Shutting down TaskIQ broker...".format(SERVER_INIT_LOG_MESSAGE)
-        )
+        LoggerUtil.create_info_log("{}::Shutting down TaskIQ broker...".format(SERVER_INIT_LOG_MESSAGE))
         await broker.shutdown()
 
 

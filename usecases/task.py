@@ -1,8 +1,9 @@
+from typing import Dict
+
+from config.non_env import PLATFORM_INSTAGRAM
 from logger.logging import LoggerUtil
 from server.pg_broker import broker
 from usecases.webhook_management import WebhookManagement
-from typing import Dict
-from config.non_env import PLATFORM_INSTAGRAM
 
 
 @broker.task
@@ -40,7 +41,5 @@ async def process_meta_webhook(webhook_data: Dict):
             data = change["value"]
             # Inject platform_user_id from entry into the data
             data["platform_user_id"] = entry["id"]
-            LoggerUtil.create_info_log(
-                f"Enqueuing comment change task for platform_user_id {data['platform_user_id']}"
-            )
+            LoggerUtil.create_info_log(f"Enqueuing comment change task for platform_user_id {data['platform_user_id']}")
             await process_meta_comment_change.kiq(data)

@@ -1,0 +1,83 @@
+[run]
+# Specify which files to include in coverage
+source = .
+
+# Omit these files/directories from coverage
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */.venv/*
+    */venv/*
+    */env/*
+    */.pytest_cache/*
+    */.ruff_cache/*
+    */setup.py
+    */config/test.env
+    */migrations/*
+    */__init__.py
+    */server/app.py
+    */server/router.py
+    */server/pg_broker.py
+    */data_adapter/sql-postgres/*
+    .venv/*
+    venv/*
+
+# Branch coverage
+branch = True
+
+# Concurrency mode for async tests
+concurrency = thread
+
+[report]
+# Report options
+precision = 2
+show_missing = True
+skip_covered = False
+sort = Cover
+
+# Exclude these lines from coverage
+exclude_lines =
+    # Standard pragma
+    pragma: no cover
+
+    # Don't complain about missing debug code
+    def __repr__
+    def __str__
+
+    # Don't complain if tests don't hit defensive assertion code
+    raise AssertionError
+    raise NotImplementedError
+
+    # Don't complain if non-runnable code isn't run
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+
+    # Don't complain about abstract methods
+    @abstractmethod
+    @abc.abstractmethod
+
+    # Don't complain about overload definitions
+    @overload
+    @typing.overload
+
+    # Don't complain about ellipsis in protocols/stubs
+    \.\.\.
+
+    # Don't complain about pass statements
+    pass
+
+[html]
+# HTML report directory
+directory = htmlcov
+
+[xml]
+# XML report file
+output = coverage.xml
+
+[paths]
+# Map paths for coverage combining
+source =
+    .
+    */backend-core

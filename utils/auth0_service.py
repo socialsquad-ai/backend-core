@@ -1,6 +1,8 @@
+from typing import Dict, Optional
+
 import jwt
 import requests
-from typing import Dict, Optional
+
 from config import env
 from logger.logging import LoggerUtil
 from utils.exceptions import CustomUnauthorized
@@ -45,18 +47,16 @@ class Auth0Service:
                 if key.get("kid") == key_id:
                     # Convert JWK to PEM format
                     if key.get("kty") == "RSA":
-                        from cryptography.hazmat.primitives.asymmetric import rsa
-                        from cryptography.hazmat.primitives import serialization
                         from cryptography.hazmat.backends import default_backend
+                        from cryptography.hazmat.primitives import serialization
+                        from cryptography.hazmat.primitives.asymmetric import rsa
 
                         # Extract RSA components
                         n = int.from_bytes(jwt.utils.base64url_decode(key["n"]), "big")
                         e = int.from_bytes(jwt.utils.base64url_decode(key["e"]), "big")
 
                         # Create RSA public key
-                        public_key = rsa.RSAPublicNumbers(e, n).public_key(
-                            backend=default_backend()
-                        )
+                        public_key = rsa.RSAPublicNumbers(e, n).public_key(backend=default_backend())
 
                         # Export as PEM
                         pem = public_key.public_bytes(
@@ -98,9 +98,7 @@ class Auth0Service:
                 },
             )
 
-            LoggerUtil.create_info_log(
-                f"Token validated successfully for user: {payload.get('sub', 'unknown')}"
-            )
+            LoggerUtil.create_info_log(f"Token validated successfully for user: {payload.get('sub', 'unknown')}")
             return payload
 
         except jwt.ExpiredSignatureError:

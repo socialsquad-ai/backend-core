@@ -1,8 +1,9 @@
 import jinja2
+
 from config.non_env import (
     CREATE_REPLY_AGENT,
-    IGNORE_COMMENT_AGENT,
     DELETE_COMMENT_AGENT,
+    IGNORE_COMMENT_AGENT,
     PLATFORM_NAME_DESCRIPTION,
 )
 
@@ -23,9 +24,7 @@ class PromptGenerator:
         self.persona = persona
 
     def get_prompt_for_agent(self):
-        template = jinja2.Environment(
-            loader=jinja2.FileSystemLoader("prompts")
-        ).get_template(f"{AGENT_NAME_PROMPT_MAPPING[self.agent_name]}.j2")
+        template = jinja2.Environment(loader=jinja2.FileSystemLoader("prompts")).get_template(f"{AGENT_NAME_PROMPT_MAPPING[self.agent_name]}.j2")
 
         return template.render(
             all_platforms=ALL_PLATFORMS,

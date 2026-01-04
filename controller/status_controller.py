@@ -1,10 +1,10 @@
-from fastapi import Request
-from controller.util import APIResponseFormat
-from usecases.status_management import StatusManagement
+from fastapi import APIRouter, Request
+
 from config.non_env import API_VERSION_V1
-from fastapi import APIRouter
-from decorators.user import require_authentication
+from controller.util import APIResponseFormat
 from decorators.common import validate_json_payload
+from decorators.user import require_authentication
+from usecases.status_management import StatusManagement
 
 status_router = APIRouter(
     prefix=f"{API_VERSION_V1}/status",

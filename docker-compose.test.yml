@@ -1,0 +1,72 @@
+services:
+  # PostgreSQL database for testing
+  test-db:
+    image: postgres:15-alpine
+    container_name: ssq-test-db
+    environment:
+      POSTGRES_DB: ssq_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d ssq_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # Test runner service
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: ssq-test-runner
+    depends_on:
+      test-db:
+        condition: service_healthy
+    environment:
+      # Database configuration
+      SSQ_DB_HOST: test-db
+      SSQ_DB_PORT: 5432
+      SSQ_DB_NAME: ssq_test
+      SSQ_DB_USER: test_user
+      SSQ_DB_PASSWORD: test_password
+
+      # Application environment
+      APP_ENVIRONMENT: testing
+      DEBUG: "False"
+      TESTING: "True"
+
+      # Mock Auth0 settings for tests
+      AUTH0_DOMAIN: test.auth0.com
+      AUTH0_AUDIENCE: test-audience
+      AUTH0_ISSUER: https://test.auth0.com/
+
+      # Internal API key for tests
+      INTERNAL_AUTH_API_KEY: test-internal-key
+    volumes:
+      - .:/app
+      - /app/.venv  # Exclude venv from sync
+      - /app/.pytest_cache
+      - /app/.ruff_cache
+      - ./htmlcov:/app/htmlcov
+      - ./coverage.xml:/app/coverage.xml
+    networks:
+      - test-network
+    command: >
+      sh -c "
+        echo 'Waiting for database to be ready...' &&
+        sleep 2 &&
+        echo 'Running unit tests...' &&
+        python -m pytest tests/ -v --cov=. --cov-report=html --cov-report=term-missing --cov-report=xml --cov-fail-under=100 &&
+        echo 'Tests completed successfully!'
+      "
+
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  test-db-data:
