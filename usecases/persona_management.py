@@ -1,10 +1,12 @@
+from typing import Tuple, Optional, Dict, Any
 from data_adapter.personas import Persona, PersonaTemplate
-from data_adapter.account import Account
+from data_adapter.user import User
 from utils.error_messages import (
     RESOURCE_NOT_FOUND,
     INVALID_PAGINATION_PARAMETERS,
     PERSONA_ALREADY_EXISTS,
 )
+from logger.logging import LoggerUtil
 
 
 class PersonaManagement:
@@ -17,15 +19,15 @@ class PersonaManagement:
         return "", [template.get_details() for template in templates], None
 
     @staticmethod
-    def get_account_personas(account: Account, page: int = 1, page_size: int = 10):
+    def get_user_personas(user: User, page: int = 1, page_size: int = 10):
         """
-        Get paginated personas for an account
+        Get paginated personas for a user
         """
         if page < 1 or page_size < 1 or page_size > 100:
             return INVALID_PAGINATION_PARAMETERS, None, None
 
-        query = Persona.get_all_for_account(account, page, page_size)
-        total = Persona.get_all_for_account_count(account)
+        query = Persona.get_all_for_user(user, page, page_size)
+        total = Persona.get_all_for_user_count(user)
 
         return (
             "",
@@ -42,35 +44,49 @@ class PersonaManagement:
         )
 
     @staticmethod
-    def create_account_persona(
-        account: Account,
+    def create_persona(
+        user: User,
         name: str,
         tone: str,
         style: str,
         instructions: str,
         personal_details: str | None = None,
-    ):
-        persona = Persona.get_by_name_and_account(name, account)
-        if persona:
-            return PERSONA_ALREADY_EXISTS, None, None
-        persona = Persona.create_persona(
-            account=account,
-            name=name,
-            tone=tone,
-            style=style,
-            instructions=instructions,
-            personal_details=personal_details or "",
-        )
+    ) -> Tuple[str, Optional[Dict[str, Any]], Optional[str]]:
+        """
+        Create a new persona for a user.
 
-        return "", persona.get_details(), None
+        Returns:
+            Tuple of (error_message, data, errors):
+            - error_message: Empty string if successful, error message otherwise
+            - data: Persona details dict if successful, None otherwise
+            - errors: Error details if any, None otherwise
+        """
+        try:
+            # Check if persona with same name already exists for this user
+            persona = Persona.get_by_name_and_user(name, user)
+            if persona:
+                return PERSONA_ALREADY_EXISTS, None, None
+
+            # Create the persona
+            persona = Persona.create_persona(
+                user=user,
+                name=name,
+                tone=tone,
+                style=style,
+                instructions=instructions,
+                personal_details=personal_details or "",
+            )
+
+            return "", persona.get_details(), None
+
+        except Exception as e:
+            error_msg = f"Failed to create persona: {str(e)}"
+            LoggerUtil.create_error_log(error_msg)
+            return error_msg, None, None
 
     @staticmethod
-    def get_persona(persona_uuid: str):
-        return Persona.get_by_uuid(persona_uuid)
-
-    @staticmethod
-    def update_account_persona(
-        account: Account,
+    def update_persona(
+        user: User,
         persona_uuid: str,
         name: str | None = None,
         tone: str | None = None,
@@ -81,12 +97,13 @@ class PersonaManagement:
         persona = Persona.get_by_uuid(persona_uuid)
         if not persona:
             return RESOURCE_NOT_FOUND, None, None
-
-        persona = persona[0]
+        # Verify it belongs to the user
+        if persona.user.id != user.id:
+            return RESOURCE_NOT_FOUND, None, None
 
         if name:
-            persona_check = Persona.get_by_name_and_account(name, persona.account)
-            if persona_check and str(persona_check[0].uuid) != persona_uuid:
+            persona_check = Persona.get_by_name_and_user(name, persona.user)
+            if persona_check and str(persona_check.uuid) != persona_uuid:
                 return PERSONA_ALREADY_EXISTS, None, None
 
         # Update fields if provided
@@ -111,7 +128,15 @@ class PersonaManagement:
         return "", persona.get_details(), None
 
     @staticmethod
-    def delete_account_persona(persona_uuid: str, account: Account):
+    def delete_persona(persona_uuid: str, user: User):
+        # First verify the persona exists and belongs to the user
+        persona = Persona.get_by_uuid(persona_uuid)
+        if not persona:
+            return RESOURCE_NOT_FOUND, None, None
+        # Verify it belongs to the user
+        if persona.user.id != user.id:
+            return RESOURCE_NOT_FOUND, None, None
+        # Soft delete
         success = Persona.delete_by_uuid(persona_uuid)
         if not success:
             return RESOURCE_NOT_FOUND, None, None

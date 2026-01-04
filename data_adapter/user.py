@@ -1,7 +1,6 @@
 from data_adapter.db import BaseModel
-from playhouse.postgres_ext import CharField, BooleanField, DateTimeField
-from peewee import ForeignKeyField
-from data_adapter.account import Account
+from playhouse.postgres_ext import CharField, BooleanField, DateTimeField, JSONField
+from utils.util import parse_timestamp
 
 
 class User(BaseModel):
@@ -13,10 +12,17 @@ class User(BaseModel):
     )  # email-password, google, facebook, etc.
     email_verified = BooleanField(default=False)
     auth0_created_at = DateTimeField(null=True)  # When user was created in Auth0
-    account = ForeignKeyField(Account, backref="users")
+    role = CharField(null=False)
+    content_categories = JSONField(null=False)
+    status = CharField(null=False)
 
     class Meta:
         db_table = "users"
+
+    def update_values(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.save()
 
     @classmethod
     def get_by_email(cls, email):
@@ -24,7 +30,8 @@ class User(BaseModel):
 
     @classmethod
     def get_by_auth0_user_id(cls, auth0_user_id):
-        return cls.select_query().where(cls.auth0_user_id == auth0_user_id).limit(1)
+        user = cls.select_query().where(cls.auth0_user_id == auth0_user_id).limit(1)
+        return user[0] if user else None
 
     @classmethod
     def get_or_create_user_from_auth0(
@@ -35,12 +42,16 @@ class User(BaseModel):
         signup_method,
         email_verified,
         auth0_created_at,
-        account,
     ):
         """
         Create or update user from Auth0 user data
-        user_data should contain: auth0_user_id, name, email, signup_method, email_verified, created_at, account
+        user_data should contain: auth0_user_id, name, email, signup_method, email_verified, created_at
         """
+        if signup_method == "email-password":
+            status = "verification_pending"
+        else:
+            status = "onboarding"
+
         try:
             user = User.create(
                 auth0_user_id=auth0_user_id,
@@ -48,8 +59,10 @@ class User(BaseModel):
                 email=email,
                 signup_method=signup_method,
                 email_verified=email_verified,
-                auth0_created_at=auth0_created_at,
-                account=account,
+                auth0_created_at=parse_timestamp(auth0_created_at),
+                status=status,
+                role="brand",  # Default role
+                content_categories=[],  # Default empty list
             )
         except Exception as e:
             raise e
@@ -71,4 +84,7 @@ class User(BaseModel):
                 else self.created_at.isoformat()
             ),
             "uuid": str(self.uuid),
+            "role": self.role,
+            "content_categories": self.content_categories,
+            "status": self.status,
         }

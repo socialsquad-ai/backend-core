@@ -1,7 +1,7 @@
 from data_adapter.db import BaseModel
 from playhouse.postgres_ext import CharField, DateTimeField, TextField, JSONField
 from peewee import ForeignKeyField
-from datetime import datetime, timezone
+from datetime import datetime
 from data_adapter.user import User
 
 

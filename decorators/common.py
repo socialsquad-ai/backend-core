@@ -3,16 +3,10 @@ from controller.cerberus import CustomValidator
 from logger.logging import LoggerUtil
 from utils.exceptions import CustomBadRequest
 from utils.contextvar import (
-    get_request_json_post_payload,
-    get_request_metadata,
-    set_request_metadata,
-    clear_request_metadata,
+    get_request_json_post_payload
 )
 import asyncio
 from typing import Dict, Type, Any
-import uuid
-from utils.contextvar import RequestMetadata
-import datetime
 from fastapi import Request
 from utils.exceptions import CustomUnauthorized
 from config import env
