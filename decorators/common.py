@@ -2,9 +2,7 @@ from functools import wraps
 from controller.cerberus import CustomValidator
 from logger.logging import LoggerUtil
 from utils.exceptions import CustomBadRequest
-from utils.contextvar import (
-    get_request_json_post_payload
-)
+from utils.contextvar import get_request_json_post_payload
 import asyncio
 from typing import Dict, Type, Any
 from fastapi import Request
