@@ -1,15 +1,14 @@
+import asyncio
 from functools import wraps
+from typing import Any, Dict, Type
+
+from fastapi import Request
+
+from config import env
 from controller.cerberus import CustomValidator
 from logger.logging import LoggerUtil
-from utils.exceptions import CustomBadRequest
-from utils.contextvar import (
-    get_request_json_post_payload
-)
-import asyncio
-from typing import Dict, Type, Any
-from fastapi import Request
-from utils.exceptions import CustomUnauthorized
-from config import env
+from utils.contextvar import get_request_json_post_payload
+from utils.exceptions import CustomBadRequest, CustomUnauthorized
 
 
 def validate_json_payload(payload_validation_schema: dict):
@@ -36,9 +35,7 @@ def validate_json_payload(payload_validation_schema: dict):
                 LoggerUtil.create_error_log(
                     "BAD_REQUEST:Payload:{},Error:{}".format(post_payload, v.errors),
                 )
-                raise CustomBadRequest(
-                    detail="Invalid payload", errors=v.errors if v else None
-                )
+                raise CustomBadRequest(detail="Invalid payload", errors=v.errors if v else None)
             return await func(*args, **kwargs)
 
         return wrapper
@@ -48,14 +45,11 @@ def validate_json_payload(payload_validation_schema: dict):
 
 def validate_query_params(func):
     # TODO :: Add the logic to validate the query params
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            return await func(*args, **kwargs)
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        return await func(*args, **kwargs)
 
-        return wrapper
-
-    return decorator
+    return wrapper
 
 
 def singleton_class(cls):
@@ -95,16 +89,12 @@ def require_internal_authentication(func):
 
         auth_header = request.headers.get("Authorization")
         if not auth_header:
-            LoggerUtil.create_error_log(
-                "No Authorization header found for internal auth"
-            )
+            LoggerUtil.create_error_log("No Authorization header found for internal auth")
             raise CustomUnauthorized(detail="Authorization header required")
 
         # Check for Bearer token format
         if not auth_header.startswith("Bearer "):
-            LoggerUtil.create_error_log(
-                "Invalid Authorization header format for internal auth"
-            )
+            LoggerUtil.create_error_log("Invalid Authorization header format for internal auth")
             raise CustomUnauthorized(detail="Invalid authorization format")
 
         # Extract the token

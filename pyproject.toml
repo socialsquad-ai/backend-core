@@ -1,0 +1,35 @@
+[tool.ruff]
+# Exclude test template files from linting
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    "*.egg-info",
+    "dist",
+    "build",
+    "tests/TEST_TEMPLATE.py",
+]
+
+# Line length (220 to accommodate API documentation strings and logging formats)
+line-length = 220
+
+# Target Python version
+target-version = "py39"
+
+[tool.ruff.lint]
+# Enable specific rule sets
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "W",   # pycodestyle warnings
+]
+
+# Ignore specific rules
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["server", "controller", "usecases", "data_adapter", "utils", "config", "decorators", "logger"]

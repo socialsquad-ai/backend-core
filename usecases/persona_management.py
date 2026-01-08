@@ -1,12 +1,13 @@
-from typing import Tuple, Optional, Dict, Any
+from typing import Any, Dict, Optional, Tuple
+
 from data_adapter.personas import Persona, PersonaTemplate
 from data_adapter.user import User
+from logger.logging import LoggerUtil
 from utils.error_messages import (
-    RESOURCE_NOT_FOUND,
     INVALID_PAGINATION_PARAMETERS,
     PERSONA_ALREADY_EXISTS,
+    RESOURCE_NOT_FOUND,
 )
-from logger.logging import LoggerUtil
 
 
 class PersonaManagement:
@@ -36,9 +37,7 @@ class PersonaManagement:
                 "total": total,
                 "page": page,
                 "page_size": page_size,
-                "total_pages": (total + page_size - 1) // page_size
-                if page_size > 0
-                else 0,
+                "total_pages": (total + page_size - 1) // page_size if page_size > 0 else 0,
             },
             None,
         )
@@ -50,7 +49,7 @@ class PersonaManagement:
         tone: str,
         style: str,
         instructions: str,
-        personal_details: str | None = None,
+        personal_details: Optional[str] = None,
     ) -> Tuple[str, Optional[Dict[str, Any]], Optional[str]]:
         """
         Create a new persona for a user.
@@ -88,11 +87,11 @@ class PersonaManagement:
     def update_persona(
         user: User,
         persona_uuid: str,
-        name: str | None = None,
-        tone: str | None = None,
-        style: str | None = None,
-        instructions: str | None = None,
-        personal_details: str | None = None,
+        name: Optional[str] = None,
+        tone: Optional[str] = None,
+        style: Optional[str] = None,
+        instructions: Optional[str] = None,
+        personal_details: Optional[str] = None,
     ):
         persona = Persona.get_by_uuid(persona_uuid)
         if not persona:

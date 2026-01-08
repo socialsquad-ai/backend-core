@@ -1,15 +1,15 @@
-from data_adapter.db import BaseModel
-from playhouse.postgres_ext import CharField, DateTimeField, TextField, JSONField
-from peewee import ForeignKeyField
 from datetime import datetime
+
+from peewee import ForeignKeyField
+from playhouse.postgres_ext import CharField, DateTimeField, JSONField, TextField
+
+from data_adapter.db import BaseModel
 from data_adapter.user import User
 
 
 class Integration(BaseModel):
     user = ForeignKeyField(User, backref="integrations")
-    platform_user_id = CharField(
-        max_length=50, null=False
-    )  # e.g., 'instagram_user_id', 'youtube_channel_id'
+    platform_user_id = CharField(max_length=50, null=False)  # e.g., 'instagram_user_id', 'youtube_channel_id'
     platform = CharField(max_length=50, null=False)  # e.g., 'instagram', 'youtube'
     access_token = TextField(null=False)
     refresh_token = TextField(null=True)
@@ -32,6 +32,11 @@ class Integration(BaseModel):
     @classmethod
     def delete_by_uuid_for_user(cls, uuid, user):
         return cls.soft_delete().where(cls.uuid == uuid, cls.user == user).execute()
+
+    @classmethod
+    def get_by_platform_user_id(cls, platform_user_id: str, platform: str):
+        """Get integration by platform user ID and platform type."""
+        return cls.select_query().where(cls.platform_user_id == platform_user_id, cls.platform == platform).first()
 
     @classmethod
     def create_integration(

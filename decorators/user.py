@@ -1,10 +1,12 @@
 from functools import wraps
+
 from fastapi import Request
-from utils.exceptions import CustomUnauthorized
-from utils.auth0_service import Auth0Service
-from logger.logging import LoggerUtil
-from utils.contextvar import set_context_user
+
 from data_adapter.user import User
+from logger.logging import LoggerUtil
+from utils.auth0_service import Auth0Service
+from utils.contextvar import set_context_user
+from utils.exceptions import CustomUnauthorized
 
 
 def require_authentication(func):
@@ -35,9 +37,7 @@ def require_authentication(func):
             set_context_user(User.get_by_auth0_user_id(token_payload.get("sub")))
             # set_context_user(User.get_by_email("milind@socialsquad.ai").get())
 
-            LoggerUtil.create_info_log(
-                f"Authentication successful for user: {token_payload.get('sub', 'unknown')}"
-            )
+            LoggerUtil.create_info_log(f"Authentication successful for user: {token_payload.get('sub', 'unknown')}")
 
         except CustomUnauthorized:
             # Re-raise the exception as it's already properly formatted

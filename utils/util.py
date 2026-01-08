@@ -1,6 +1,7 @@
-from config.env import APP_ENVIRONMENT
-import uuid
 import datetime
+import uuid
+
+from config.env import APP_ENVIRONMENT
 
 
 def is_local_env():
@@ -17,9 +18,10 @@ def sanitize_string_input(input_string):
 
 def is_valid_uuid_v4(uuid_string):
     try:
-        uuid.UUID(uuid_string, version=4)
-        return True
-    except ValueError:
+        parsed_uuid = uuid.UUID(uuid_string)
+        # Check if the UUID is specifically version 4
+        return parsed_uuid.version == 4
+    except (ValueError, AttributeError):
         return False
 
 

@@ -1,11 +1,11 @@
-from fastapi.responses import JSONResponse
 from typing import Dict, List
+
+from fastapi.responses import JSONResponse
+
 from utils.contextvar import get_context_api_id
 
 
-def api_response_format(
-    api_id: str, message: str, data: dict = None, errors: list = None
-) -> dict:
+def api_response_format(api_id: str, message: str, data: dict = None, errors: list = None) -> dict:
     return {"message": message, "data": data, "errors": errors}
 
 

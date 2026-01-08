@@ -1,6 +1,7 @@
-from data_adapter.db import BaseModel
-from playhouse.postgres_ext import CharField, TimeField, BooleanField, TextField
 from peewee import ForeignKeyField
+from playhouse.postgres_ext import BooleanField, CharField, TextField, TimeField
+
+from data_adapter.db import BaseModel
 from data_adapter.integration import Integration
 
 

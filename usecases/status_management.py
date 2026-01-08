@@ -1,6 +1,7 @@
-from logger.logging import LoggerUtil
-from data_adapter.db import get_db_status
 from fastapi import Request
+
+from data_adapter.db import get_db_status
+from logger.logging import LoggerUtil
 
 
 class StatusManagement:

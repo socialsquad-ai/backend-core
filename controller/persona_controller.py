@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Query, Request
 
-from decorators.user import require_authentication
-from decorators.common import validate_json_payload
-from usecases.persona_management import PersonaManagement
-from controller.util import APIResponseFormat
 from config.non_env import API_VERSION_V1
-from utils.status_codes import RESPONSE_200, RESPONSE_404, RESPONSE_400, RESPONSE_500
+from controller.util import APIResponseFormat
+from decorators.common import validate_json_payload
+from decorators.user import require_authentication
+from usecases.persona_management import PersonaManagement
+from utils.contextvar import get_context_user, get_request_json_post_payload
 from utils.error_messages import (
-    RESOURCE_NOT_FOUND,
     INVALID_PAGINATION_PARAMETERS,
     PERSONA_ALREADY_EXISTS,
+    RESOURCE_NOT_FOUND,
 )
-from utils.contextvar import get_context_user, get_request_json_post_payload
+from utils.status_codes import RESPONSE_200, RESPONSE_400, RESPONSE_404, RESPONSE_500
 
 persona_router = APIRouter(
     prefix=f"{API_VERSION_V1}/personas",
@@ -63,9 +63,7 @@ async def get_personas(
 ):
     """Get paginated list of personas for the current user."""
     user = get_context_user()
-    error_message, data, errors = PersonaManagement.get_user_personas(
-        user, page, page_size
-    )
+    error_message, data, errors = PersonaManagement.get_user_personas(user, page, page_size)
     if not error_message:
         status_code = RESPONSE_200
     elif error_message == INVALID_PAGINATION_PARAMETERS:
@@ -134,9 +132,7 @@ async def create_persona(request: Request):
     description="Update an existing persona's settings including name, tone, style, and instructions.",
     responses={
         200: {"description": "Persona updated successfully"},
-        400: {
-            "description": "Persona with this name already exists or invalid payload"
-        },
+        400: {"description": "Persona with this name already exists or invalid payload"},
         401: {"description": "Authentication required"},
         404: {"description": "Persona not found"},
         500: {"description": "Failed to update persona"},
@@ -160,9 +156,7 @@ async def update_persona(
     """Update an existing persona's configuration."""
     user = get_context_user()
     payload = get_request_json_post_payload()
-    error_message, data, errors = PersonaManagement.update_persona(
-        user=user, persona_uuid=persona_uuid, **payload
-    )
+    error_message, data, errors = PersonaManagement.update_persona(user=user, persona_uuid=persona_uuid, **payload)
     if not error_message:
         status_code = 200
         message = "Persona updated successfully"
@@ -204,9 +198,7 @@ async def delete_persona(
     user = get_context_user()
     error_message, data, errors = PersonaManagement.delete_persona(persona_uuid, user)
     if error_message:
-        status_code = (
-            RESPONSE_404 if error_message == RESOURCE_NOT_FOUND else RESPONSE_500
-        )
+        status_code = RESPONSE_404 if error_message == RESOURCE_NOT_FOUND else RESPONSE_500
         message = error_message
     else:
         status_code = 200

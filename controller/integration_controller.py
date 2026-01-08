@@ -1,10 +1,11 @@
+from fastapi import APIRouter
 from fastapi.requests import Request
 from fastapi.responses import RedirectResponse
-from controller.util import APIResponseFormat
-from usecases.integration_management import IntegrationManagement
+
 from config.non_env import API_VERSION_V1
-from fastapi import APIRouter
+from controller.util import APIResponseFormat
 from decorators.user import require_authentication
+from usecases.integration_management import IntegrationManagement
 from utils.error_messages import INTEGRATION_NOT_FOUND, UNSUPPORTED_PLATFORM
 
 integrations_router = APIRouter(
@@ -55,9 +56,7 @@ async def get_all_integrations(request: Request):
 @require_authentication
 async def get_integration(request: Request, integration_uuid: str):
     """Get a specific integration by UUID."""
-    error_message, data, errors = IntegrationManagement.get_integration_by_uuid(
-        integration_uuid
-    )
+    error_message, data, errors = IntegrationManagement.get_integration_by_uuid(integration_uuid)
     if not error_message:
         status_code = 200
     elif error_message == INTEGRATION_NOT_FOUND:
@@ -115,9 +114,7 @@ async def get_oauth_url(request: Request, platform: str):
 )
 async def handle_oauth_callback(request: Request, platform: str, code: str):
     """Handle OAuth callback and exchange code for tokens."""
-    error_message, data, errors = IntegrationManagement.handle_oauth_callback(
-        platform, code, request
-    )
+    error_message, data, errors = IntegrationManagement.handle_oauth_callback(platform, code, request)
     status_code = 200 if not error_message else 500
     if status_code == 200:
         return RedirectResponse(url=data)
@@ -143,9 +140,7 @@ async def handle_oauth_callback(request: Request, platform: str, code: str):
 @require_authentication
 async def delete_integration(request: Request, integration_uuid: str):
     """Delete a platform integration."""
-    error_message, data, errors = IntegrationManagement.delete_integration(
-        integration_uuid
-    )
+    error_message, data, errors = IntegrationManagement.delete_integration(integration_uuid)
     status_code = 200 if not error_message else 500
     return APIResponseFormat(
         status_code=status_code,

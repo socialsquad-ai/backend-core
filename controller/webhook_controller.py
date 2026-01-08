@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Query, Request, Response, status
 from typing import Optional
+
+from fastapi import APIRouter, Query, Request, Response, status
+
 from config.non_env import API_VERSION_V1, META_VERIFY_TOKEN
 from controller.util import APIResponseFormat
 from logger.logging import LoggerUtil
-from utils.status_codes import RESPONSE_200, RESPONSE_500
 from usecases.task import process_meta_webhook
+from utils.status_codes import RESPONSE_200, RESPONSE_500
 
 webhook_router = APIRouter(
     prefix=f"{API_VERSION_V1}/webhooks",

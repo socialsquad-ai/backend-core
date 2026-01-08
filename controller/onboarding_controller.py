@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Request
 
-from decorators.user import require_authentication
-from decorators.common import validate_json_payload
-from usecases.onboarding_management import OnboardingManagement
-from controller.util import APIResponseFormat
 from config.non_env import API_VERSION_V1
-from utils.status_codes import RESPONSE_200, RESPONSE_500
+from controller.util import APIResponseFormat
+from decorators.common import validate_json_payload
+from decorators.user import require_authentication
+from usecases.onboarding_management import OnboardingManagement
 from utils.contextvar import get_context_user, get_request_json_post_payload
+from utils.status_codes import RESPONSE_200, RESPONSE_500
 
 onboarding_router = APIRouter(
     prefix=f"{API_VERSION_V1}/onboarding",
@@ -19,9 +19,7 @@ onboarding_router = APIRouter(
     summary="Complete User Onboarding",
     description="Complete the onboarding process for a new user by creating their initial AI persona. This sets up the user's preferences for automated social media interactions.",
     responses={
-        200: {
-            "description": "User onboarded successfully with initial persona created"
-        },
+        200: {"description": "User onboarded successfully with initial persona created"},
         400: {"description": "Invalid request payload"},
         401: {"description": "Authentication required"},
         500: {"description": "Failed to complete onboarding"},

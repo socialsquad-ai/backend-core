@@ -41,6 +41,25 @@
                                 "check",
                                 "."
                         ]
+                },
+                {
+                        "name": "Run Unit Tests (Docker)",
+                        "type": "node-terminal",
+                        "request": "launch",
+                        "command": "docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit; docker-compose -f docker-compose.test.yml down",
+                        "cwd": "${workspaceFolder}"
+                },
+                {
+                        "name": "Check Test Coverage (100%)",
+                        "type": "debugpy",
+                        "module": "pytest",
+                        "request": "launch",
+                        "args": [
+                                "tests/",
+                                "--cov-fail-under=100"
+                        ],
+                        "console": "integratedTerminal",
+                        "justMyCode": false
                 }
         ]
 }
