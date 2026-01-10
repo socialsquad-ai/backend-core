@@ -1,0 +1,64 @@
+# Dockerfile for running unit tests in an isolated environment
+# Multi-stage build to reduce final image size
+
+# Stage 1: Builder stage with all build dependencies
+FROM python:3.9-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies
+# These are only needed during pip install and can be discarded after
+RUN apk add --no-cache \
+    build-base \
+    postgresql-dev \
+    libffi-dev \
+    openssl-dev \
+    musl-dev
+
+# Copy requirements files
+COPY requirements.txt requirements-dev.txt ./
+
+# Create virtual environment and install dependencies
+# Using --prefix to install to a specific location we can copy later
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Python dependencies into the virtual environment
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -r requirements-dev.txt
+
+# Stage 2: Runtime stage with only runtime dependencies
+FROM python:3.9-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    APP_ENVIRONMENT=testing \
+    PATH="/opt/venv/bin:$PATH"
+
+# Install only runtime dependencies (no build tools)
+# postgresql-libs: Runtime libraries for psycopg2 (no -dev package needed)
+# libffi: Runtime library for cryptography
+# libpq: PostgreSQL client library
+RUN apk add --no-cache \
+    postgresql-client \
+    postgresql-libs \
+    libffi \
+    libpq
+
+# Copy virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy application code
+COPY . .
+
+# Create directory for test reports
+RUN mkdir -p htmlcov test-results
+
+# Default command runs tests with coverage
+CMD ["python", "-m", "pytest", "tests/", "-v", "--cov=.", "--cov-report=html", "--cov-report=term-missing", "--cov-report=xml", "--cov-fail-under=100"]

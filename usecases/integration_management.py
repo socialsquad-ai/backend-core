@@ -1,15 +1,16 @@
-from data_adapter.integration import Integration
+from datetime import datetime, timedelta, timezone
+
+import requests
+
 from config.env import (
-    META_CLIENT_ID,
-    META_CLIENT_SECRET,
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
+    META_CLIENT_ID,
+    META_CLIENT_SECRET,
     SSQ_BASE_URL,
     SSQ_CLIENT_URL,
 )
-import requests
-from datetime import datetime, timedelta, timezone
-
+from data_adapter.integration import Integration
 from logger.logging import LoggerUtil
 from utils.contextvar import get_context_user
 from utils.error_messages import (
@@ -63,9 +64,7 @@ class IntegrationManagement:
         redirect_uri = request.query_params.get("redirect_uri")
         return (
             "",
-            config["auth_url"].format(
-                client_id=config["client_id"], redirect_uri=redirect_uri
-            ),
+            config["auth_url"].format(client_id=config["client_id"], redirect_uri=redirect_uri),
             None,
         )
 
@@ -100,12 +99,8 @@ class IntegrationManagement:
             # Refresh token is not available for all platforms so adding a check here
             refresh_token = response_data.get("refresh_token")
             if refresh_token:
-                refresh_token_expires_in = response_data.get(
-                    "refresh_token_expires_in", 604800
-                )
-                refresh_token_expires_at = datetime.now(timezone.utc) + timedelta(
-                    seconds=refresh_token_expires_in
-                )
+                refresh_token_expires_in = response_data.get("refresh_token_expires_in", 604800)
+                refresh_token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=refresh_token_expires_in)
 
             # Handling scopes for different platforms
             scopes = []

@@ -1,16 +1,23 @@
-from data_adapter.user import User
-from data_adapter.account import Account
-from utils.contextvar import get_request_json_post_payload, get_request_metadata
-from fastapi import Request
-from utils.error_messages import RESOURCE_NOT_FOUND, INVALID_RESOURCE_ID
-from utils.util import is_valid_uuid_v4
-from decorators.common import run_in_background
-from peewee import IntegrityError
 import datetime
+
+from fastapi import Request
+from peewee import IntegrityError
+
 from data_adapter.db import ssq_db
+from data_adapter.user import User
+from utils.contextvar import get_context_user, get_request_json_post_payload
+from utils.error_messages import INVALID_RESOURCE_ID, RESOURCE_NOT_FOUND
+from utils.util import is_valid_uuid_v4
 
 
 class UserManagement:
+    @staticmethod
+    def get_profile(request: Request):
+        user = get_context_user()
+        if not user:
+            return RESOURCE_NOT_FOUND, None, None
+        return "", user.get_details(), None
+
     @staticmethod
     @ssq_db.atomic()
     def create_user(request: Request):
@@ -20,19 +27,8 @@ class UserManagement:
         name = payload.get("name", email.split("@")[0])
         signup_method = payload["signup_method"]
         email_verified = payload["email_verified"]
-        auth0_created_at = payload.get(
-            "auth0_created_at", datetime.datetime.now(datetime.timezone.utc).isoformat()
-        )
-        account_uuid = payload.get("account_uuid")
+        auth0_created_at = payload.get("auth0_created_at", datetime.datetime.now(datetime.timezone.utc).isoformat())
         try:
-            # If we're adding a user to an existing account, use the existing account
-            if account_uuid:
-                account = Account.get_by_uuid(account_uuid)
-            else:
-                account = Account.get_or_create_account(name, email)
-            if not account:
-                return "", None, "Account not found"
-
             user = User.get_or_create_user_from_auth0(
                 auth0_user_id,
                 name,
@@ -40,13 +36,14 @@ class UserManagement:
                 signup_method,
                 email_verified,
                 auth0_created_at,
-                account,
             )
             return "", user.get_details(), None
         except IntegrityError:
             return "", None, "User already exists"
         except Exception as e:
-            return "", None, e
+            # Convert exception to string to make it JSON serializable
+            error_message = str(e)
+            return "", None, error_message
 
     @staticmethod
     def get_user_by_email(request: Request):

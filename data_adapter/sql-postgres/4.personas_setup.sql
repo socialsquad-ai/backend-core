@@ -9,7 +9,7 @@ CREATE TABLE persona_templates (
     description VARCHAR(255) NOT NULL,
     tone VARCHAR(255) NOT NULL,
     style VARCHAR(255) NOT NULL,
-    instructions TEXT NOT NULL,
+    instructions TEXT NOT NULL
 );
 
 GRANT ALL PRIVILEGES ON TABLE persona_templates TO ssq_user;
@@ -28,14 +28,14 @@ CREATE TABLE personas (
     style VARCHAR(255) NOT NULL,
     instructions TEXT NOT NULL,
     personal_details TEXT NULL,
-    account_id INTEGER NOT NULL,
-    FOREIGN KEY (account_id) REFERENCES accounts(id)
+    user_id INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 GRANT ALL PRIVILEGES ON TABLE personas TO ssq_user;
 GRANT USAGE, SELECT ON SEQUENCE personas_id_seq TO ssq_user;
 
-CREATE INDEX idx_personas_account_id ON personas(account_id);
+CREATE INDEX idx_personas_user_id ON personas(user_id);
 
 
 -- Add persona templates

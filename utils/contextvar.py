@@ -1,6 +1,7 @@
 import contextvars
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from typing import Any
+
 from fastapi import Request
 
 
@@ -30,12 +31,8 @@ class JsonPayload:
 
 
 # Initialize context vars with empty frozen dataclasses
-request_metadata = contextvars.ContextVar(
-    "request_metadata", default=RequestMetadata.empty()
-)
-context_json_post_payload = contextvars.ContextVar(
-    "context_json_post_payload", default=JsonPayload.empty()
-)
+request_metadata = contextvars.ContextVar("request_metadata", default=RequestMetadata.empty())
+context_json_post_payload = contextvars.ContextVar("context_json_post_payload", default=JsonPayload.empty())
 context_user = contextvars.ContextVar("context_user", default=None)
 
 
@@ -46,9 +43,7 @@ def get_request_metadata() -> dict[str, Any]:
 
 def set_request_metadata(metadata: dict) -> None:
     # Store as immutable dataclass
-    request_metadata.set(
-        RequestMetadata(api_id=metadata["api_id"], thread_id=metadata["thread_id"])
-    )
+    request_metadata.set(RequestMetadata(api_id=metadata["api_id"], thread_id=metadata["thread_id"]))
 
 
 def get_context_api_id() -> str:

@@ -9,33 +9,17 @@ from logger.logging import LoggerUtil
 TESTING = os.environ.get("APP_ENVIRONMENT") == "testing"
 LOCAL = os.environ.get("APP_ENVIRONMENT", "local") == "local"
 # Load env variables from a file, if exists
-LoggerUtil.create_info_log(
-    "{}::Setting environment variables from .env file(if exists)...".format(
-        SERVER_INIT_LOG_MESSAGE
-    )
-)
+LoggerUtil.create_info_log("{}::Setting environment variables from .env file(if exists)...".format(SERVER_INIT_LOG_MESSAGE))
 if TESTING:
     dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test.env")
-    LoggerUtil.create_info_log(
-        "{}::Loading testing environment variables from '{}' file...".format(
-            SERVER_INIT_LOG_MESSAGE, dotenv_path
-        )
-    )
+    LoggerUtil.create_info_log("{}::Loading testing environment variables from '{}' file...".format(SERVER_INIT_LOG_MESSAGE, dotenv_path))
     load_dotenv(verbose=True, dotenv_path=dotenv_path)
 elif LOCAL:
     dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
-    LoggerUtil.create_info_log(
-        "{}::Loading local environment variables from '{}' file...".format(
-            SERVER_INIT_LOG_MESSAGE, dotenv_path
-        )
-    )
+    LoggerUtil.create_info_log("{}::Loading local environment variables from '{}' file...".format(SERVER_INIT_LOG_MESSAGE, dotenv_path))
     load_dotenv(verbose=True, dotenv_path=dotenv_path)
 else:
-    LoggerUtil.create_info_log(
-        "{}::Loading environment variables from '.env' file...".format(
-            SERVER_INIT_LOG_MESSAGE
-        )
-    )
+    LoggerUtil.create_info_log("{}::Loading environment variables from '.env' file...".format(SERVER_INIT_LOG_MESSAGE))
     load_dotenv(verbose=True)
 
 DEBUG = Environment.get_bool("DEBUG", "False")

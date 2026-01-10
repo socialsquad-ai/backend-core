@@ -1,6 +1,6 @@
 import os
 
-from config.non_env import CONFIG_ERROR_LOG_MESSAGE, ALERT_MESSAGE_PREPEND
+from config.non_env import ALERT_MESSAGE_PREPEND, CONFIG_ERROR_LOG_MESSAGE
 from logger.logging import LoggerUtil
 
 
@@ -15,11 +15,7 @@ class Environment:
         try:
             value = int(eval(value))  # pylint: disable=eval-used
         except Exception:
-            LoggerUtil.create_error_log(
-                "{}:{}::Invalid int value:{} for {}".format(
-                    ALERT_MESSAGE_PREPEND, CONFIG_ERROR_LOG_MESSAGE, value, config_name
-                )
-            )
+            LoggerUtil.create_error_log("{}:{}::Invalid int value:{} for {}".format(ALERT_MESSAGE_PREPEND, CONFIG_ERROR_LOG_MESSAGE, value, config_name))
             return default
         return value
 
@@ -29,11 +25,7 @@ class Environment:
         try:
             value = bool(eval(value))  # pylint: disable=eval-used
         except Exception:
-            LoggerUtil.create_error_log(
-                "{}:{}::Invalid bool value:{} for {}".format(
-                    ALERT_MESSAGE_PREPEND, CONFIG_ERROR_LOG_MESSAGE, value, config_name
-                )
-            )
+            LoggerUtil.create_error_log("{}:{}::Invalid bool value:{} for {}".format(ALERT_MESSAGE_PREPEND, CONFIG_ERROR_LOG_MESSAGE, value, config_name))
             return default
         return value
 
@@ -43,11 +35,7 @@ class Environment:
         try:
             value = float(eval(value))  # pylint: disable=eval-used
         except Exception:
-            LoggerUtil.create_error_log(
-                "{}:{}::Invalid float value:{} for {}".format(
-                    ALERT_MESSAGE_PREPEND, CONFIG_ERROR_LOG_MESSAGE, value, config_name
-                )
-            )
+            LoggerUtil.create_error_log("{}:{}::Invalid float value:{} for {}".format(ALERT_MESSAGE_PREPEND, CONFIG_ERROR_LOG_MESSAGE, value, config_name))
             return default
         return value
 
@@ -62,10 +50,6 @@ class Environment:
             value = eval(value)  # pylint: disable=eval-used
             assert isinstance(value, dict)
         except Exception:
-            LoggerUtil.create_error_log(
-                "{}:{}::Invalid dict value:{} for {}".format(
-                    ALERT_MESSAGE_PREPEND, CONFIG_ERROR_LOG_MESSAGE, value, config_name
-                )
-            )
+            LoggerUtil.create_error_log("{}:{}::Invalid dict value:{} for {}".format(ALERT_MESSAGE_PREPEND, CONFIG_ERROR_LOG_MESSAGE, value, config_name))
             return eval(default)  # pylint: disable=eval-used
         return value

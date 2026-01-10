@@ -1,5 +1,7 @@
-from loguru import logger
 import sys
+
+from loguru import logger
+
 from utils.contextvar import get_request_metadata
 
 # Configure logger with a default sink to stdout

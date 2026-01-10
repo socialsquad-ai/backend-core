@@ -1,16 +1,16 @@
 import datetime
 
-from peewee import Model, AutoField, UUIDField, DateTimeField, BooleanField
+from peewee import AutoField, BooleanField, DateTimeField, Model, UUIDField
 from playhouse.pool import PooledPostgresqlExtDatabase
 
 from config.env import (
+    APP_ENVIRONMENT,
+    DEBUG,
     SSQ_DB_HOST,
     SSQ_DB_NAME,
     SSQ_DB_PASSWORD,
     SSQ_DB_PORT,
     SSQ_DB_USER,
-    DEBUG,
-    APP_ENVIRONMENT,
     TESTING,
 )
 from logger.logging import LoggerUtil
@@ -81,9 +81,7 @@ class BaseModel(Model):
 
     @classmethod
     def soft_delete(cls):
-        return cls.update(
-            {cls.is_deleted: True, cls.updated_at: datetime.datetime.now()}
-        )
+        return cls.update({cls.is_deleted: True, cls.updated_at: datetime.datetime.now()})
 
 
 def get_db_status():
