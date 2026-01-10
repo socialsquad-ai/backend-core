@@ -119,7 +119,7 @@ class TestValidateQueryParams:
     @pytest.mark.asyncio
     async def test_validate_query_params_decorator_exists(self):
         # Arrange & Act
-        @validate_query_params
+        @validate_query_params({})
         async def test_func():
             return "success"
 
@@ -131,7 +131,7 @@ class TestValidateQueryParams:
     @pytest.mark.asyncio
     async def test_validate_query_params_passes_through(self):
         # Arrange
-        @validate_query_params
+        @validate_query_params({})
         async def test_func(param1, param2):
             return f"{param1}-{param2}"
 
@@ -140,6 +140,47 @@ class TestValidateQueryParams:
 
         # Assert
         assert result == "value1-value2"
+
+    @pytest.mark.asyncio
+    @patch("decorators.common.LoggerUtil.create_error_log")
+    async def test_validate_query_params_validation_success(self, mock_logger):
+        # Arrange
+        schema = {"id": {"type": "string"}}
+        mock_request = Mock(spec=Request)
+        mock_request.query_params = {"id": "123"}
+
+        @validate_query_params(schema)
+        async def test_func(request):
+            return "success"
+
+        # Act
+        result = await test_func(request=mock_request)
+
+        # Assert
+        assert result == "success"
+
+    @pytest.mark.asyncio
+    @patch("decorators.common.LoggerUtil.create_error_log")
+    async def test_validate_query_params_validation_failure(self, mock_logger):
+        # Arrange
+        schema = {"id": {"type": "integer"}}  # Expects integer, but query params are strings unless coerced (Cerberus doesn't coerce by default)
+        # Note: Cerberus by default doesn't coerce strings to int. So this should fail if type is integer.
+        # However, checking my implementation, I didn't enable coercion.
+        # So {"id": "123"} will fail against {"type": "integer"}.
+
+        mock_request = Mock(spec=Request)
+        mock_request.query_params = {"id": "123"}
+
+        @validate_query_params(schema)
+        async def test_func(request):
+            return "success"
+
+        # Act & Assert
+        with pytest.raises(CustomBadRequest) as exc_info:
+            await test_func(request=mock_request)
+
+        assert "Invalid query parameters" in exc_info.value.detail
+        mock_logger.assert_called()
 
 
 class TestSingletonClass:

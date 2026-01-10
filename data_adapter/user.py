@@ -7,7 +7,7 @@ from utils.util import parse_timestamp
 class User(BaseModel):
     auth0_user_id = CharField(unique=True)  # Auth0 user ID
     name = CharField(null=True)
-    email = CharField()
+    email = CharField(unique=True)
     signup_method = CharField(default="email-password")  # email-password, google, facebook, etc.
     email_verified = BooleanField(default=False)
     auth0_created_at = DateTimeField(null=True)  # When user was created in Auth0

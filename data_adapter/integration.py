@@ -20,6 +20,7 @@ class Integration(BaseModel):
 
     class Meta:
         db_table = "integrations"
+        indexes = ((("platform_user_id", "platform"), True),)
 
     @classmethod
     def get_all_for_user(cls, user):
