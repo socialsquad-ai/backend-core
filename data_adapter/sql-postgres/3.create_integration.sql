@@ -15,6 +15,3 @@ CREATE TABLE IF NOT EXISTS integrations (
     refresh_token VARCHAR(255),
     refresh_token_expires_at TIMESTAMPTZ NOT NULL
 );
-
-GRANT ALL PRIVILEGES ON TABLE integrations TO ssq_user;
-GRANT USAGE, SELECT ON SEQUENCE integrations_id_seq TO ssq_user;

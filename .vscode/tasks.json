@@ -27,6 +27,45 @@
             "detail": "Wait for debugpy ports to be available"
         },
         {
+            "label": "docker-start-postgres",
+            "type": "shell",
+            "command": "docker compose up -d postgres && echo 'Waiting for Postgres to be healthy...' && until docker compose exec postgres pg_isready -U postgres 2>/dev/null; do sleep 1; done && echo 'Postgres ready!'",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": [],
+            "detail": "Start only the Postgres container and wait for it to be healthy"
+        },
+        {
+            "label": "docker-start-api",
+            "type": "shell",
+            "command": "docker compose up -d --build api && echo 'Waiting for API debugpy...' && until nc -z 127.0.0.1 5678 2>/dev/null; do sleep 1; done && echo 'API ready!'",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": [],
+            "detail": "Start only the API container"
+        },
+        {
+            "label": "docker-start-worker",
+            "type": "shell",
+            "command": "docker compose up -d --build worker && echo 'Waiting for Worker debugpy...' && until nc -z 127.0.0.1 5679 2>/dev/null; do sleep 1; done && echo 'Worker ready!'",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": [],
+            "detail": "Start only the Worker container"
+        },
+        {
             "label": "docker-start-dev",
             "type": "shell",
             "command": "docker compose up -d --build",

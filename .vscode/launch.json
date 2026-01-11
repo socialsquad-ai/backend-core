@@ -19,6 +19,13 @@
             "preLaunchTask": "docker-restart-dev"
         },
         {
+            "name": "Start Postgres (Docker)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "docker compose up -d postgres && echo 'Waiting for Postgres...' && until docker compose exec postgres pg_isready -U postgres 2>/dev/null; do sleep 1; done && echo 'Postgres ready!' && docker compose logs -f postgres",
+            "cwd": "${workspaceFolder}"
+        },
+        {
             "name": "Debug API Server (Docker)",
             "type": "debugpy",
             "request": "attach",
@@ -33,7 +40,7 @@
                 }
             ],
             "justMyCode": false,
-            "preLaunchTask": "docker-wait-for-debugpy"
+            "preLaunchTask": "docker-start-api"
         },
         {
             "name": "Debug Worker (Docker)",
@@ -50,7 +57,7 @@
                 }
             ],
             "justMyCode": false,
-            "preLaunchTask": "docker-wait-for-debugpy"
+            "preLaunchTask": "docker-start-worker"
         },
         {
             "name": "Run Unit Tests (Docker)",
@@ -62,12 +69,12 @@
     ],
     "compounds": [
         {
-            "name": "Debug All Services (API + Worker)",
+            "name": "Debug All Services (Postgres + API + Worker)",
             "configurations": [
+                "Start Postgres (Docker)",
                 "Debug API Server (Docker)",
                 "Debug Worker (Docker)"
             ],
-            "preLaunchTask": "docker-restart-dev",
             "stopAll": true
         }
     ]
