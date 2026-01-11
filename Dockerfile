@@ -1,7 +1,7 @@
 # ============================================
 # Development Stage (with debugpy for VS Code debugging)
 # ============================================
-FROM python:3.9-slim AS development
+FROM python:3.12-slim AS development
 
 # Set working directory
 WORKDIR /app
@@ -39,7 +39,7 @@ CMD ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "-m", "uvicorn", "se
 # ============================================
 # Builder Stage (for production dependencies)
 # ============================================
-FROM python:3.9-slim AS builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
@@ -62,7 +62,7 @@ RUN pip install --upgrade pip && \
 # ============================================
 # Production Stage (minimal, secure)
 # ============================================
-FROM python:3.9-slim AS production
+FROM python:3.12-slim AS production
 
 WORKDIR /app
 
@@ -88,7 +88,7 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/api/v1/status || exit 1
+    CMD curl -f http://localhost:8000/v1/status/ || exit 1
 
 # Run the application with uvicorn (production mode, no reload)
 CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000"]
@@ -96,7 +96,7 @@ CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000"]
 # ============================================
 # Worker Stage (for TaskIQ worker - development)
 # ============================================
-FROM python:3.9-slim AS worker-development
+FROM python:3.12-slim AS worker-development
 
 WORKDIR /app
 
@@ -132,7 +132,7 @@ CMD ["python", "-m", "debugpy", "--listen", "0.0.0.0:5679", "-m", "taskiq", "wor
 # ============================================
 # Worker Stage (for TaskIQ worker - production)
 # ============================================
-FROM python:3.9-slim AS worker-production
+FROM python:3.12-slim AS worker-production
 
 WORKDIR /app
 
