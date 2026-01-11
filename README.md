@@ -52,7 +52,7 @@ cp config/.env.example config/.env
 docker compose up
 ```
 
-### Step 3: Verify
+### Step 3: Verifyy
 
 Once running, you can access:
 
