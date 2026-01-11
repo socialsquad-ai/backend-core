@@ -37,8 +37,10 @@
     // File associations
     "files.associations": {
         "*.env": "dotenv",
-        "Dockerfile.test": "dockerfile",
-        "docker-compose.test.yml": "yaml"
+        "*.env.*": "dotenv",
+        "Dockerfile": "dockerfile",
+        "Dockerfile.*": "dockerfile",
+        "docker-compose*.yml": "yaml"
     },
 
     // Exclude files from search

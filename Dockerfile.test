@@ -2,7 +2,7 @@
 # Multi-stage build to reduce final image size
 
 # Stage 1: Builder stage with all build dependencies
-FROM python:3.9-alpine AS builder
+FROM python:3.12-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -30,7 +30,7 @@ RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements-dev.txt
 
 # Stage 2: Runtime stage with only runtime dependencies
-FROM python:3.9-alpine
+FROM python:3.12-alpine
 
 # Set working directory
 WORKDIR /app
