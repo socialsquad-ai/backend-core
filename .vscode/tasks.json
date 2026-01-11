@@ -2,84 +2,43 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "docker-restart-dev",
+            "label": "start-api",
             "type": "shell",
-            "command": "docker compose down && docker compose up -d --build && echo 'Waiting for debugpy to be ready...' && sleep 8 && echo 'Services ready!'",
+            "command": "docker compose up -d --build api && echo 'Waiting for API...' && until nc -z 127.0.0.1 5678 2>/dev/null; do sleep 1; done && echo 'API ready!'",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "start-worker",
+            "type": "shell",
+            "command": "docker compose up -d --build worker && echo 'Waiting for Worker...' && until nc -z 127.0.0.1 5679 2>/dev/null; do sleep 1; done && echo 'Worker ready!'",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "start-all-services",
+            "type": "shell",
+            "command": "docker compose down && docker compose up -d --build && echo 'Waiting for services...' && sleep 8 && echo 'All services ready!'",
             "presentation": {
                 "reveal": "always",
                 "panel": "new",
                 "showReuseMessage": false,
                 "clear": true
             },
-            "problemMatcher": [],
-            "detail": "Restart all Docker services (Postgres, API, Worker) with development config"
+            "problemMatcher": []
         },
         {
-            "label": "docker-wait-for-debugpy",
-            "type": "shell",
-            "command": "echo 'Waiting for debugpy ports...' && until nc -z 127.0.0.1 5678 2>/dev/null; do sleep 1; done && until nc -z 127.0.0.1 5679 2>/dev/null; do sleep 1; done && echo 'debugpy ready!'",
-            "presentation": {
-                "reveal": "silent",
-                "panel": "shared",
-                "showReuseMessage": false
-            },
-            "problemMatcher": [],
-            "detail": "Wait for debugpy ports to be available"
-        },
-        {
-            "label": "docker-start-postgres",
-            "type": "shell",
-            "command": "docker compose up -d postgres && echo 'Waiting for Postgres to be healthy...' && until docker compose exec postgres pg_isready -U postgres 2>/dev/null; do sleep 1; done && echo 'Postgres ready!'",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Start only the Postgres container and wait for it to be healthy"
-        },
-        {
-            "label": "docker-start-api",
-            "type": "shell",
-            "command": "docker compose up -d --build api && echo 'Waiting for API debugpy...' && until nc -z 127.0.0.1 5678 2>/dev/null; do sleep 1; done && echo 'API ready!'",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Start only the API container"
-        },
-        {
-            "label": "docker-start-worker",
-            "type": "shell",
-            "command": "docker compose up -d --build worker && echo 'Waiting for Worker debugpy...' && until nc -z 127.0.0.1 5679 2>/dev/null; do sleep 1; done && echo 'Worker ready!'",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Start only the Worker container"
-        },
-        {
-            "label": "docker-start-dev",
-            "type": "shell",
-            "command": "docker compose up -d --build",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Start all Docker services in detached mode"
-        },
-        {
-            "label": "docker-stop-dev",
+            "label": "docker-stop",
             "type": "shell",
             "command": "docker compose down",
             "presentation": {
@@ -88,70 +47,7 @@
                 "showReuseMessage": false,
                 "clear": true
             },
-            "problemMatcher": [],
-            "detail": "Stop all Docker services"
-        },
-        {
-            "label": "docker-logs-api",
-            "type": "shell",
-            "command": "docker compose logs -f api",
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated",
-                "showReuseMessage": false
-            },
-            "problemMatcher": [],
-            "detail": "Follow API server logs"
-        },
-        {
-            "label": "docker-logs-worker",
-            "type": "shell",
-            "command": "docker compose logs -f worker",
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated",
-                "showReuseMessage": false
-            },
-            "problemMatcher": [],
-            "detail": "Follow Worker logs"
-        },
-        {
-            "label": "docker-logs-all",
-            "type": "shell",
-            "command": "docker compose logs -f",
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated",
-                "showReuseMessage": false
-            },
-            "problemMatcher": [],
-            "detail": "Follow all service logs"
-        },
-        {
-            "label": "docker-rebuild-api",
-            "type": "shell",
-            "command": "docker compose up -d --build api",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Rebuild and restart only the API service"
-        },
-        {
-            "label": "docker-rebuild-worker",
-            "type": "shell",
-            "command": "docker compose up -d --build worker",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Rebuild and restart only the Worker service"
+            "problemMatcher": []
         },
         {
             "label": "docker-clean",
@@ -163,8 +59,7 @@
                 "showReuseMessage": false,
                 "clear": true
             },
-            "problemMatcher": [],
-            "detail": "Stop services, remove volumes, and clean up Docker"
+            "problemMatcher": []
         },
         {
             "label": "Run Unit Tests (Docker)",
@@ -175,61 +70,36 @@
                 "isDefault": true
             },
             "presentation": {
-                "echo": true,
                 "reveal": "always",
-                "focus": true,
                 "panel": "shared",
                 "showReuseMessage": false,
                 "clear": true
             },
-            "problemMatcher": [],
-            "detail": "Run unit tests in Docker and cleanup containers"
+            "problemMatcher": []
         },
         {
-            "label": "Run Unit Tests (Local)",
-            "type": "shell",
-            "command": "source .venv/bin/activate && python -m pytest tests/",
-            "group": "test",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": true,
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Run unit tests locally without Docker (uses pytest.ini config)"
-        },
-        {
-            "label": "Ruff Format Code",
+            "label": "Ruff Format",
             "type": "shell",
             "command": "ruff format .",
             "group": "build",
             "presentation": {
-                "echo": true,
                 "reveal": "always",
-                "focus": false,
                 "panel": "shared",
                 "showReuseMessage": false
             },
-            "problemMatcher": [],
-            "detail": "Format codebase with Ruff"
+            "problemMatcher": []
         },
         {
-            "label": "Ruff Check Code",
+            "label": "Ruff Check",
             "type": "shell",
             "command": "ruff check .",
             "group": "build",
             "presentation": {
-                "echo": true,
                 "reveal": "always",
-                "focus": false,
                 "panel": "shared",
                 "showReuseMessage": false
             },
-            "problemMatcher": [],
-            "detail": "Lint codebase with Ruff"
+            "problemMatcher": []
         }
     ]
 }

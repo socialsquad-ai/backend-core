@@ -2,31 +2,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Start All Services (Docker)",
-            "type": "debugpy",
-            "request": "attach",
-            "connect": {
-                "host": "127.0.0.1",
-                "port": 5678
-            },
-            "pathMappings": [
-                {
-                    "localRoot": "${workspaceFolder}",
-                    "remoteRoot": "/app"
-                }
-            ],
-            "justMyCode": false,
-            "preLaunchTask": "docker-restart-dev"
-        },
-        {
-            "name": "Start Postgres (Docker)",
+            "name": "Start Postgres",
             "type": "node-terminal",
             "request": "launch",
-            "command": "docker compose up -d postgres && echo 'Waiting for Postgres...' && until docker compose exec postgres pg_isready -U postgres 2>/dev/null; do sleep 1; done && echo 'Postgres ready!' && docker compose logs -f postgres",
+            "command": "docker compose up postgres",
             "cwd": "${workspaceFolder}"
         },
         {
-            "name": "Debug API Server (Docker)",
+            "name": "Start API Server",
             "type": "debugpy",
             "request": "attach",
             "connect": {
@@ -40,10 +23,10 @@
                 }
             ],
             "justMyCode": false,
-            "preLaunchTask": "docker-start-api"
+            "preLaunchTask": "start-api"
         },
         {
-            "name": "Debug Worker (Docker)",
+            "name": "Start Worker",
             "type": "debugpy",
             "request": "attach",
             "connect": {
@@ -57,25 +40,24 @@
                 }
             ],
             "justMyCode": false,
-            "preLaunchTask": "docker-start-worker"
+            "preLaunchTask": "start-worker"
         },
         {
-            "name": "Run Unit Tests (Docker)",
-            "type": "node-terminal",
-            "request": "launch",
-            "command": "docker compose -f docker-compose.test.yml up --build --abort-on-container-exit; docker compose -f docker-compose.test.yml down",
-            "cwd": "${workspaceFolder}"
-        }
-    ],
-    "compounds": [
-        {
-            "name": "Debug All Services (Postgres + API + Worker)",
-            "configurations": [
-                "Start Postgres (Docker)",
-                "Debug API Server (Docker)",
-                "Debug Worker (Docker)"
+            "name": "Start All Services",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "127.0.0.1",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "/app"
+                }
             ],
-            "stopAll": true
+            "justMyCode": false,
+            "preLaunchTask": "start-all-services"
         }
     ]
 }
