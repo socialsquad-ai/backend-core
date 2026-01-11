@@ -12,10 +12,6 @@ CREATE TABLE persona_templates (
     instructions TEXT NOT NULL
 );
 
-GRANT ALL PRIVILEGES ON TABLE persona_templates TO ssq_user;
-GRANT USAGE, SELECT ON SEQUENCE persona_templates_id_seq TO ssq_user;
-
-
 -- Create Personas Table
 CREATE TABLE personas (
     id SERIAL PRIMARY KEY,
@@ -31,9 +27,6 @@ CREATE TABLE personas (
     user_id INTEGER NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
-
-GRANT ALL PRIVILEGES ON TABLE personas TO ssq_user;
-GRANT USAGE, SELECT ON SEQUENCE personas_id_seq TO ssq_user;
 
 CREATE INDEX idx_personas_user_id ON personas(user_id);
 

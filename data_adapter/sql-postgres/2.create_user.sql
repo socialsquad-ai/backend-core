@@ -14,6 +14,3 @@ CREATE TABLE IF NOT EXISTS users (
     content_categories JSON NOT NULL DEFAULT '[]',
     status VARCHAR(50) NOT NULL DEFAULT 'active'
 );
-
-GRANT ALL PRIVILEGES ON TABLE users TO ssq_user;
-GRANT USAGE, SELECT ON SEQUENCE users_id_seq TO ssq_user;

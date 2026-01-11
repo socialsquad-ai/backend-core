@@ -2,35 +2,67 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Development Commands
+## CRITICAL REQUIREMENTS
 
-### Running the Server
+### Swagger Documentation (MANDATORY)
+
+**Every time you add or modify an API endpoint, you MUST update Swagger documentation:**
+
+1. Add `summary` and `description` to the route decorator
+2. Add `responses` dict with all possible status codes
+3. Add `openapi_extra={"security": [...]}` if authentication is required
+4. If creating a new domain, add tag to `tags_metadata` in `server/app.py`
+
+Example:
+```python
+@router.post(
+    "/",
+    summary="Create Resource",  # REQUIRED
+    description="Detailed description of the endpoint.",  # REQUIRED
+    responses={  # REQUIRED
+        200: {"description": "Success"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+    },
+    openapi_extra={"security": [{"Auth0Bearer": []}]},  # If auth required
+)
+```
+
+**Verification**: After adding an API, check http://localhost:8000/docs to ensure it appears correctly.
+
+## Development Commands (Docker)
+
+### Start All Services
 ```bash
-# Activate virtual environment
-source .venv/bin/activate
+docker compose up
+```
 
-# Run the server
-uvicorn server.app:app --reload --host 0.0.0.0 --port 8000
+### Start Individual Services
+```bash
+docker compose up postgres   # Database only
+docker compose up api        # API server only
+docker compose up worker     # TaskIQ worker only
+```
+
+### Stop Services
+```bash
+docker compose down          # Stop all
+docker compose down -v       # Stop and remove volumes (resets database)
 ```
 
 ### Running Tests
 ```bash
+# In Docker (recommended)
+docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
+
+# Locally
 python -m pytest tests/ -v
 ```
 
 ### Code Quality
 ```bash
-# Lint code with ruff
-ruff check .
-
-# Format code with ruff
-ruff format .
-```
-
-### TaskIQ Worker
-```bash
-# Start TaskIQ worker for async task processing
-taskiq worker server.pg_broker:broker
+ruff check .   # Lint
+ruff format .  # Format
 ```
 
 ## Architecture Overview
