@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple, List
+from typing import Any, Dict, List, Optional, Tuple
 
 from data_adapter.personas import Persona, PersonaTemplate
 from data_adapter.user import User
