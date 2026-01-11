@@ -1,0 +1,137 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: ssq-postgres
+    environment:
+      POSTGRES_USER: ${SSQ_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${SSQ_DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${SSQ_DB_NAME:-ssq_db}
+    ports:
+      - "${SSQ_DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./data_adapter/sql-postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SSQ_DB_USER:-postgres} -d ${SSQ_DB_NAME:-ssq_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ssq-network
+    restart: unless-stopped
+
+  # FastAPI Server (Production by default)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ssq-api
+    ports:
+      - "${SERVER_PORT:-8000}:8000"
+    environment:
+      # Application settings
+      APP_ENVIRONMENT: ${APP_ENVIRONMENT:-production}
+      DEBUG: ${DEBUG:-False}
+
+      # Database configuration
+      SSQ_DB_HOST: postgres
+      SSQ_DB_PORT: "5432"
+      SSQ_DB_USER: ${SSQ_DB_USER:-postgres}
+      SSQ_DB_PASSWORD: ${SSQ_DB_PASSWORD:-postgres}
+      SSQ_DB_NAME: ${SSQ_DB_NAME:-ssq_db}
+
+      # Auth0 Configuration
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+      AUTH0_ISSUER: ${AUTH0_ISSUER}
+
+      # Internal API Key
+      INTERNAL_AUTH_API_KEY: ${INTERNAL_AUTH_API_KEY}
+
+      # Application URLs
+      SSQ_BASE_URL: ${SSQ_BASE_URL:-http://localhost:8000}
+      SSQ_CLIENT_URL: ${SSQ_CLIENT_URL:-http://localhost:3000}
+
+      # Social Media Configuration
+      META_CLIENT_ID: ${META_CLIENT_ID}
+      META_CLIENT_SECRET: ${META_CLIENT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+
+      # JWT Configuration
+      SSQ_SECRET_KEY: ${SSQ_SECRET_KEY}
+      SSQ_ALGORITHM: ${SSQ_ALGORITHM:-HS256}
+      SSQ_ACCESS_TOKEN_EXPIRE_MINUTES: ${SSQ_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ssq-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # TaskIQ Worker (Production by default)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: worker-production
+    container_name: ssq-worker
+    environment:
+      # Application settings
+      APP_ENVIRONMENT: ${APP_ENVIRONMENT:-production}
+      DEBUG: ${DEBUG:-False}
+
+      # Database configuration
+      SSQ_DB_HOST: postgres
+      SSQ_DB_PORT: "5432"
+      SSQ_DB_USER: ${SSQ_DB_USER:-postgres}
+      SSQ_DB_PASSWORD: ${SSQ_DB_PASSWORD:-postgres}
+      SSQ_DB_NAME: ${SSQ_DB_NAME:-ssq_db}
+
+      # Auth0 Configuration
+      AUTH0_DOMAIN: ${AUTH0_DOMAIN}
+      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+      AUTH0_ISSUER: ${AUTH0_ISSUER}
+
+      # Internal API Key
+      INTERNAL_AUTH_API_KEY: ${INTERNAL_AUTH_API_KEY}
+
+      # Application URLs
+      SSQ_BASE_URL: ${SSQ_BASE_URL:-http://localhost:8000}
+      SSQ_CLIENT_URL: ${SSQ_CLIENT_URL:-http://localhost:3000}
+
+      # Social Media Configuration
+      META_CLIENT_ID: ${META_CLIENT_ID}
+      META_CLIENT_SECRET: ${META_CLIENT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+
+      # JWT Configuration
+      SSQ_SECRET_KEY: ${SSQ_SECRET_KEY}
+      SSQ_ALGORITHM: ${SSQ_ALGORITHM:-HS256}
+      SSQ_ACCESS_TOKEN_EXPIRE_MINUTES: ${SSQ_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
+    networks:
+      - ssq-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  ssq-network:
+    driver: bridge

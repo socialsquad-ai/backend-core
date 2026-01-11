@@ -1,65 +1,68 @@
 {
-        // Use IntelliSense to learn about possible attributes.
-        // Hover to view descriptions of existing attributes.
-        // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-        "version": "0.2.0",
-        "configurations": [
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Start All Services (Docker)",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "127.0.0.1",
+                "port": 5678
+            },
+            "pathMappings": [
                 {
-                        "name": "SSQ API Server",
-                        "type": "debugpy",
-                        "request": "launch",
-                        "module": "uvicorn",
-                        "args": [
-                                "server.app:app",
-                                "--reload",
-                                "--host",
-                                "0.0.0.0",
-                                "--port",
-                                "8000"
-                        ],
-                        "jinja": true,
-                        "env": {
-                                "APP_ENVIRONMENT": "local"
-                        }
-                },
-                {
-                        "name": "Ruff Codebase Formatter",
-                        "type": "debugpy",
-                        "module": "ruff",
-                        "request": "launch",
-                        "args": [
-                                "format",
-                                "."
-                        ]
-                },
-                {
-                        "name": "Ruff Linter Checker",
-                        "type": "debugpy",
-                        "module": "ruff",
-                        "request": "launch",
-                        "args": [
-                                "check",
-                                "."
-                        ]
-                },
-                {
-                        "name": "Run Unit Tests (Docker)",
-                        "type": "node-terminal",
-                        "request": "launch",
-                        "command": "docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit; docker-compose -f docker-compose.test.yml down",
-                        "cwd": "${workspaceFolder}"
-                },
-                {
-                        "name": "Check Test Coverage (100%)",
-                        "type": "debugpy",
-                        "module": "pytest",
-                        "request": "launch",
-                        "args": [
-                                "tests/",
-                                "--cov-fail-under=100"
-                        ],
-                        "console": "integratedTerminal",
-                        "justMyCode": false
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "/app"
                 }
-        ]
+            ],
+            "justMyCode": false,
+            "preLaunchTask": "docker-restart-dev"
+        },
+        {
+            "name": "Debug API Server (Docker)",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "127.0.0.1",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "/app"
+                }
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Debug Worker (Docker)",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "127.0.0.1",
+                "port": 5679
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "/app"
+                }
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Run Unit Tests (Docker)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "docker compose -f docker-compose.test.yml up --build --abort-on-container-exit; docker compose -f docker-compose.test.yml down",
+            "cwd": "${workspaceFolder}"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug All Services (API + Worker)",
+            "configurations": ["Debug API Server (Docker)", "Debug Worker (Docker)"],
+            "stopAll": true
+        }
+    ]
 }

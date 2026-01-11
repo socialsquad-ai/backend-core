@@ -2,9 +2,123 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "docker-restart-dev",
+            "type": "shell",
+            "command": "docker compose down && docker compose up -d --build && sleep 3",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": [],
+            "detail": "Restart all Docker services (Postgres, API, Worker) with development config"
+        },
+        {
+            "label": "docker-start-dev",
+            "type": "shell",
+            "command": "docker compose up -d --build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": [],
+            "detail": "Start all Docker services in detached mode"
+        },
+        {
+            "label": "docker-stop-dev",
+            "type": "shell",
+            "command": "docker compose down",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": [],
+            "detail": "Stop all Docker services"
+        },
+        {
+            "label": "docker-logs-api",
+            "type": "shell",
+            "command": "docker compose logs -f api",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "showReuseMessage": false
+            },
+            "problemMatcher": [],
+            "detail": "Follow API server logs"
+        },
+        {
+            "label": "docker-logs-worker",
+            "type": "shell",
+            "command": "docker compose logs -f worker",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "showReuseMessage": false
+            },
+            "problemMatcher": [],
+            "detail": "Follow Worker logs"
+        },
+        {
+            "label": "docker-logs-all",
+            "type": "shell",
+            "command": "docker compose logs -f",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "showReuseMessage": false
+            },
+            "problemMatcher": [],
+            "detail": "Follow all service logs"
+        },
+        {
+            "label": "docker-rebuild-api",
+            "type": "shell",
+            "command": "docker compose up -d --build api",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": [],
+            "detail": "Rebuild and restart only the API service"
+        },
+        {
+            "label": "docker-rebuild-worker",
+            "type": "shell",
+            "command": "docker compose up -d --build worker",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": [],
+            "detail": "Rebuild and restart only the Worker service"
+        },
+        {
+            "label": "docker-clean",
+            "type": "shell",
+            "command": "docker compose down -v --remove-orphans && docker system prune -f",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "problemMatcher": [],
+            "detail": "Stop services, remove volumes, and clean up Docker"
+        },
+        {
             "label": "Run Unit Tests (Docker)",
             "type": "shell",
-            "command": "docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit; docker-compose -f docker-compose.test.yml down",
+            "command": "docker compose -f docker-compose.test.yml up --build --abort-on-container-exit; docker compose -f docker-compose.test.yml down",
             "group": {
                 "kind": "test",
                 "isDefault": true
@@ -35,116 +149,6 @@
             },
             "problemMatcher": [],
             "detail": "Run unit tests locally without Docker (uses pytest.ini config)"
-        },
-        {
-            "label": "Run Tests with Coverage (Local)",
-            "type": "shell",
-            "command": "source .venv/bin/activate && python -m pytest tests/",
-            "group": "test",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": true,
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Run unit tests with coverage report (uses pytest.ini config)"
-        },
-        {
-            "label": "Run Tests with Coverage Report (Docker)",
-            "type": "shell",
-            "command": "docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit && open htmlcov/index.html; docker-compose -f docker-compose.test.yml down",
-            "group": "test",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": true,
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Run tests in Docker and open coverage report"
-        },
-        {
-            "label": "Check Test Coverage Percentage",
-            "type": "shell",
-            "command": "source .venv/bin/activate && python -m pytest tests/",
-            "group": "test",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": true,
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Check if test coverage meets 100% requirement (uses pytest.ini config)"
-        },
-        {
-            "label": "Generate Coverage Report (HTML)",
-            "type": "shell",
-            "command": "source .venv/bin/activate && python -m pytest tests/ && open htmlcov/index.html",
-            "group": "test",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": true,
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Generate and open HTML coverage report (uses pytest.ini config)"
-        },
-        {
-            "label": "Stop and Remove Test Containers",
-            "type": "shell",
-            "command": "docker-compose -f docker-compose.test.yml down -v",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": true,
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Stop and remove all test containers and volumes"
-        },
-        {
-            "label": "Clean Test Artifacts",
-            "type": "shell",
-            "command": "rm -rf .pytest_cache htmlcov coverage.xml .coverage && echo 'Test artifacts cleaned'",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": true,
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Remove all test cache and coverage files"
-        },
-        {
-            "label": "Run Specific Test File",
-            "type": "shell",
-            "command": "source .venv/bin/activate && python -m pytest ${file}",
-            "group": "test",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": true,
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": true
-            },
-            "problemMatcher": [],
-            "detail": "Run currently open test file (uses pytest.ini config)"
         },
         {
             "label": "Ruff Format Code",

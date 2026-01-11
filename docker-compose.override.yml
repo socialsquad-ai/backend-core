@@ -1,0 +1,82 @@
+# docker-compose.override.yml
+# This file automatically extends docker-compose.yml when running `docker compose up`
+# It adds development-specific configurations (hot reload, debugger, code sync)
+
+version: '3.8'
+
+services:
+  # Development overrides for API service
+  api:
+    build:
+      target: development
+    container_name: ssq-api-dev
+    ports:
+      - "8000:8000"   # API port
+      - "5678:5678"   # debugpy port for VS Code
+    environment:
+      APP_ENVIRONMENT: local
+      DEBUG: "True"
+    volumes:
+      # Mount source code for live editing and hot reload
+      - ./config:/app/config
+      - ./controller:/app/controller
+      - ./data_adapter:/app/data_adapter
+      - ./decorators:/app/decorators
+      - ./logger:/app/logger
+      - ./prompts:/app/prompts
+      - ./schemas:/app/schemas
+      - ./server:/app/server
+      - ./usecases:/app/usecases
+      - ./utils:/app/utils
+      - ./requirements.txt:/app/requirements.txt
+      - ./requirements-dev.txt:/app/requirements-dev.txt
+      # Exclude cache directories
+      - /app/__pycache__
+      - /app/.pytest_cache
+      - /app/.ruff_cache
+    restart: "no"
+    healthcheck:
+      disable: true
+    security_opt:
+      - "apparmor=unconfined"
+    cap_add:
+      - SYS_PTRACE
+
+  # Development overrides for Worker service
+  worker:
+    build:
+      target: worker-development
+    container_name: ssq-worker-dev
+    ports:
+      - "5679:5679"   # debugpy port for worker
+    environment:
+      APP_ENVIRONMENT: local
+      DEBUG: "True"
+    volumes:
+      # Mount source code for live editing
+      - ./config:/app/config
+      - ./controller:/app/controller
+      - ./data_adapter:/app/data_adapter
+      - ./decorators:/app/decorators
+      - ./logger:/app/logger
+      - ./prompts:/app/prompts
+      - ./schemas:/app/schemas
+      - ./server:/app/server
+      - ./usecases:/app/usecases
+      - ./utils:/app/utils
+      - ./requirements.txt:/app/requirements.txt
+      - ./requirements-dev.txt:/app/requirements-dev.txt
+      # Exclude cache directories
+      - /app/__pycache__
+      - /app/.pytest_cache
+      - /app/.ruff_cache
+    restart: "no"
+    security_opt:
+      - "apparmor=unconfined"
+    cap_add:
+      - SYS_PTRACE
+
+  # Development overrides for PostgreSQL
+  postgres:
+    container_name: ssq-postgres-dev
+    restart: "no"
