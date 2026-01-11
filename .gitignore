@@ -170,3 +170,12 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 .qodo
+
+# Ruff cache
+.ruff_cache/
+
+# Docker
+# Don't ignore docker-compose.override.yml as it's development config
+# But ignore any local environment overrides
+.env.local
+.env.docker
