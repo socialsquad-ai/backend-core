@@ -61,15 +61,18 @@ RUN pip install --upgrade pip && \
 
 # ============================================
 # Production Stage (minimal, secure)
+# Used for: Heroku API deployment, local production testing
 # ============================================
 FROM python:3.12-slim AS production
 
 WORKDIR /app
 
 # Set environment variables
+# PORT defaults to 8000 but Heroku will override via $PORT
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PATH="/opt/venv/bin:$PATH"
+    PATH="/opt/venv/bin:$PATH" \
+    PORT=8000
 
 # Install only runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -83,47 +86,15 @@ COPY --from=builder /opt/venv /opt/venv
 # Copy application code
 COPY . .
 
-# Expose port
+# Expose port (informational - Heroku uses $PORT)
 EXPOSE 8000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/v1/status/ || exit 1
 
 # Graceful shutdown
 STOPSIGNAL SIGTERM
 
-# Run the application with uvicorn (production mode, no reload)
-CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000"]
-
-# ============================================
-# Heroku Production Stage (unified for web and worker)
-# ============================================
-FROM python:3.12-slim AS heroku-production
-
-WORKDIR /app
-
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PATH="/opt/venv/bin:$PATH"
-
-# Install only runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy virtual environment from builder stage
-COPY --from=builder /opt/venv /opt/venv
-
-# Copy application code
-COPY . .
-
-# Graceful shutdown signal for Heroku's connection draining
-STOPSIGNAL SIGTERM
-
-# No CMD - Heroku specifies command via heroku.yml or Procfile
+# Run the application with uvicorn
+# Uses $PORT environment variable (Heroku sets this, defaults to 8000 locally)
+CMD uvicorn server.app:app --host 0.0.0.0 --port $PORT
 
 # ============================================
 # Worker Stage (for TaskIQ worker - development)
@@ -163,6 +134,7 @@ CMD ["python", "-m", "debugpy", "--listen", "0.0.0.0:5679", "-m", "taskiq", "wor
 
 # ============================================
 # Worker Stage (for TaskIQ worker - production)
+# Used for: Heroku Worker deployment
 # ============================================
 FROM python:3.12-slim AS worker-production
 

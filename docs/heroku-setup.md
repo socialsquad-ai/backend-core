@@ -10,23 +10,35 @@ This guide walks through setting up the Social Squad backend on Heroku.
 
 ## Architecture
 
-Each environment (staging/production) consists of:
-- **1 Heroku App** with two dyno types:
-  - `web` - FastAPI API server
-  - `worker` - TaskIQ background worker
-- **Heroku Postgres** - Shared database for both dynos
+Each environment (staging/production) uses **separate Heroku apps** for each service:
+- **API App** - FastAPI API server (web dyno)
+- **Worker App** - TaskIQ background worker (web dyno)
+- **Heroku Postgres** - Database attached to both apps
 
 ```
-ssq-staging (app)
-├── web dyno (API)
-├── worker dyno (TaskIQ)
-└── Heroku Postgres (DATABASE_URL)
+Staging Environment:
+├── ssq-api-staging (API app)
+│   ├── web dyno (FastAPI)
+│   └── DATABASE_URL → Heroku Postgres
+├── ssq-worker-staging (Worker app)
+│   ├── web dyno (TaskIQ)
+│   └── DATABASE_URL → Same Heroku Postgres (attached)
+└── Heroku Postgres (primary on API app)
 
-ssq-production (app)
-├── web dyno (API)
-├── worker dyno (TaskIQ)
-└── Heroku Postgres (DATABASE_URL)
+Production Environment:
+├── ssq-api-production (API app)
+│   ├── web dyno (FastAPI)
+│   └── DATABASE_URL → Heroku Postgres
+├── ssq-worker-production (Worker app)
+│   ├── web dyno (TaskIQ)
+│   └── DATABASE_URL → Same Heroku Postgres (attached)
+└── Heroku Postgres (primary on API app)
 ```
+
+**Why separate apps?** Heroku apps are single-service units. This architecture allows:
+- Independent scaling of API and Worker
+- Clearer resource monitoring per service
+- Simpler deployment and rollback per service
 
 ## One-Time Setup
 
@@ -38,39 +50,51 @@ heroku login
 
 ### 2. Create Apps
 
-```bash
-# Staging
-heroku create ssq-staging --stack container
+Create 4 apps total (2 per environment):
 
-# Production
-heroku create ssq-production --stack container
+```bash
+# Staging apps
+heroku create ssq-api-staging --stack container
+heroku create ssq-worker-staging --stack container
+
+# Production apps
+heroku create ssq-api-production --stack container
+heroku create ssq-worker-production --stack container
 ```
 
 ### 3. Add Postgres Addon
 
-```bash
-# Staging (essential-0 is the cheapest plan)
-heroku addons:create heroku-postgresql:essential-0 -a ssq-staging
+Add Postgres to the API apps, then attach to Worker apps:
 
-# Production (choose appropriate plan)
-heroku addons:create heroku-postgresql:essential-0 -a ssq-production
+```bash
+# Staging - Add Postgres to API app
+heroku addons:create heroku-postgresql:essential-0 -a ssq-api-staging
+
+# Attach the same database to Worker app
+heroku addons:attach $(heroku addons:info heroku-postgresql -a ssq-api-staging --json | jq -r '.name') -a ssq-worker-staging
+
+# Production - Add Postgres to API app
+heroku addons:create heroku-postgresql:essential-0 -a ssq-api-production
+
+# Attach the same database to Worker app
+heroku addons:attach $(heroku addons:info heroku-postgresql -a ssq-api-production --json | jq -r '.name') -a ssq-worker-production
 ```
 
-This automatically sets the `DATABASE_URL` config var.
+This sets `DATABASE_URL` on both API and Worker apps, pointing to the same database.
 
 ### 4. Set Config Vars
 
-For each app, set the required environment variables:
+Set environment variables on all 4 apps. API and Worker apps in the same environment share the same config values:
 
 ```bash
-# Staging
-heroku config:set -a ssq-staging \
+# Staging API app
+heroku config:set -a ssq-api-staging \
   APP_ENVIRONMENT=staging \
   DEBUG=False \
   SSQ_SECRET_KEY="your-secret-key" \
   SSQ_ALGORITHM=HS256 \
   SSQ_ACCESS_TOKEN_EXPIRE_MINUTES=30 \
-  SSQ_BASE_URL="https://ssq-staging.herokuapp.com" \
+  SSQ_BASE_URL="https://ssq-api-staging.herokuapp.com" \
   SSQ_CLIENT_URL="https://your-frontend-staging.com" \
   CORS_ORIGINS="https://your-frontend-staging.com" \
   AUTH0_DOMAIN="your-tenant.auth0.com" \
@@ -82,8 +106,31 @@ heroku config:set -a ssq-staging \
   GOOGLE_CLIENT_ID="xxx" \
   GOOGLE_CLIENT_SECRET="xxx"
 
-# Production (repeat with production values)
-heroku config:set -a ssq-production \
+# Staging Worker app (same values, DATABASE_URL already set via attach)
+heroku config:set -a ssq-worker-staging \
+  APP_ENVIRONMENT=staging \
+  DEBUG=False \
+  SSQ_SECRET_KEY="your-secret-key" \
+  SSQ_ALGORITHM=HS256 \
+  SSQ_ACCESS_TOKEN_EXPIRE_MINUTES=30 \
+  SSQ_BASE_URL="https://ssq-api-staging.herokuapp.com" \
+  SSQ_CLIENT_URL="https://your-frontend-staging.com" \
+  AUTH0_DOMAIN="your-tenant.auth0.com" \
+  AUTH0_AUDIENCE="your-audience" \
+  AUTH0_ISSUER="https://your-tenant.auth0.com/" \
+  INTERNAL_AUTH_API_KEY="your-internal-key" \
+  META_CLIENT_ID="xxx" \
+  META_CLIENT_SECRET="xxx" \
+  GOOGLE_CLIENT_ID="xxx" \
+  GOOGLE_CLIENT_SECRET="xxx"
+
+# Production API app (repeat with production values)
+heroku config:set -a ssq-api-production \
+  APP_ENVIRONMENT=production \
+  # ... (same vars with production values)
+
+# Production Worker app (repeat with production values)
+heroku config:set -a ssq-worker-production \
   APP_ENVIRONMENT=production \
   # ... (same vars with production values)
 ```
@@ -95,8 +142,10 @@ In your GitHub repository, go to **Settings → Secrets and variables → Action
 | Secret | Description | Example |
 |--------|-------------|---------|
 | `HEROKU_API_KEY` | Your Heroku API key | Found in Heroku Account Settings |
-| `HEROKU_STAGING_APP` | Staging app name | `ssq-staging` |
-| `HEROKU_PRODUCTION_APP` | Production app name | `ssq-production` |
+| `HEROKU_STAGING_API_APP` | Staging API app name | `ssq-api-staging` |
+| `HEROKU_STAGING_WORKER_APP` | Staging Worker app name | `ssq-worker-staging` |
+| `HEROKU_PRODUCTION_API_APP` | Production API app name | `ssq-api-production` |
+| `HEROKU_PRODUCTION_WORKER_APP` | Production Worker app name | `ssq-worker-production` |
 
 To get your Heroku API key:
 1. Go to [Heroku Account Settings](https://dashboard.heroku.com/account)
@@ -116,58 +165,60 @@ To get your Heroku API key:
 ### Manual Deployment
 
 ```bash
-# Build and push
-docker build --target heroku-production -t registry.heroku.com/ssq-staging/web .
-docker build --target heroku-production -t registry.heroku.com/ssq-staging/worker .
-
 # Login to registry
 heroku container:login
 
-# Push images
-docker push registry.heroku.com/ssq-staging/web
-docker push registry.heroku.com/ssq-staging/worker
+# Build and push API (staging example)
+docker build --target production -t registry.heroku.com/ssq-api-staging/web .
+docker push registry.heroku.com/ssq-api-staging/web
+heroku container:release web -a ssq-api-staging
 
-# Release
-heroku container:release web worker -a ssq-staging
+# Build and push Worker (staging example)
+docker build --target worker-production -t registry.heroku.com/ssq-worker-staging/web .
+docker push registry.heroku.com/ssq-worker-staging/web
+heroku container:release web -a ssq-worker-staging
 ```
+
+Note: API uses `--target production`, Worker uses `--target worker-production`.
 
 ## Scaling Dynos
 
-After first deployment, scale your dynos:
+After first deployment, scale your dynos (each app has only `web` dyno type):
 
 ```bash
 # Staging
-heroku ps:scale web=1 worker=1 -a ssq-staging
+heroku ps:scale web=1 -a ssq-api-staging
+heroku ps:scale web=1 -a ssq-worker-staging
 
 # Production (adjust based on load)
-heroku ps:scale web=2 worker=1 -a ssq-production
+heroku ps:scale web=2 -a ssq-api-production
+heroku ps:scale web=1 -a ssq-worker-production
 ```
 
 ## Viewing Logs
 
 ```bash
-# All logs
-heroku logs --tail -a ssq-staging
+# API logs
+heroku logs --tail -a ssq-api-staging
 
-# Web dyno only
-heroku logs --tail --dyno web -a ssq-staging
-
-# Worker dyno only
-heroku logs --tail --dyno worker -a ssq-staging
+# Worker logs
+heroku logs --tail -a ssq-worker-staging
 ```
 
 ## Database Management
 
+The database is attached to both API and Worker apps. Use the API app for database management:
+
 ### Connect to Database
 
 ```bash
-heroku pg:psql -a ssq-staging
+heroku pg:psql -a ssq-api-staging
 ```
 
 ### View Database Info
 
 ```bash
-heroku pg:info -a ssq-staging
+heroku pg:info -a ssq-api-staging
 ```
 
 ### Run Migrations
@@ -176,38 +227,44 @@ If you have SQL migration files:
 
 ```bash
 # Get database credentials
-heroku pg:credentials:url -a ssq-staging
+heroku pg:credentials:url -a ssq-api-staging
 
 # Run migration
-heroku pg:psql -a ssq-staging < data_adapter/sql-postgres/1.initial_setup.sql
+heroku pg:psql -a ssq-api-staging < data_adapter/sql-postgres/1.initial_setup.sql
 ```
 
 ## Useful Commands
 
 ```bash
 # View app info
-heroku apps:info -a ssq-staging
+heroku apps:info -a ssq-api-staging
+heroku apps:info -a ssq-worker-staging
 
 # View config vars
-heroku config -a ssq-staging
+heroku config -a ssq-api-staging
 
 # View running dynos
-heroku ps -a ssq-staging
+heroku ps -a ssq-api-staging
+heroku ps -a ssq-worker-staging
 
 # Restart dynos
-heroku restart -a ssq-staging
+heroku restart -a ssq-api-staging
+heroku restart -a ssq-worker-staging
 
-# Open app in browser
-heroku open -a ssq-staging
+# Open API app in browser
+heroku open -a ssq-api-staging
 ```
 
 ## Zero-Downtime Deployments (Optional)
 
-Enable Preboot for zero-downtime deployments:
+Enable Preboot for zero-downtime deployments (primarily useful for API apps):
 
 ```bash
-heroku features:enable preboot -a ssq-staging
-heroku features:enable preboot -a ssq-production
+# Staging
+heroku features:enable preboot -a ssq-api-staging
+
+# Production
+heroku features:enable preboot -a ssq-api-production
 ```
 
 With Preboot:
@@ -221,7 +278,8 @@ With Preboot:
 
 Check logs for errors:
 ```bash
-heroku logs --tail -a ssq-staging
+heroku logs --tail -a ssq-api-staging
+heroku logs --tail -a ssq-worker-staging
 ```
 
 Common issues:
@@ -231,18 +289,18 @@ Common issues:
 
 ### Worker Not Processing Tasks
 
-1. Verify worker is running: `heroku ps -a ssq-staging`
-2. Check worker logs: `heroku logs --dyno worker -a ssq-staging`
-3. Verify DATABASE_URL is accessible to worker
+1. Verify worker is running: `heroku ps -a ssq-worker-staging`
+2. Check worker logs: `heroku logs --tail -a ssq-worker-staging`
+3. Verify DATABASE_URL is set: `heroku config:get DATABASE_URL -a ssq-worker-staging`
 
 ### Database Connection Issues
 
 ```bash
 # Check database status
-heroku pg:info -a ssq-staging
+heroku pg:info -a ssq-api-staging
 
 # Test connection
-heroku pg:psql -a ssq-staging -c "SELECT 1"
+heroku pg:psql -a ssq-api-staging -c "SELECT 1"
 ```
 
 ## Environment Variables Reference
