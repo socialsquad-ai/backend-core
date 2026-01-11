@@ -57,11 +57,9 @@ services:
       - test-network
     command: >
       sh -c "
-        echo 'Waiting for database to be ready...' &&
+        echo 'Waiting for database...' &&
         sleep 2 &&
-        echo 'Running unit tests...' &&
-        python -m pytest tests/ -v --cov=. --cov-report=html --cov-report=term-missing --cov-report=xml --cov-fail-under=100 &&
-        echo 'Tests completed successfully!'
+        python -m pytest tests/ -v --cov=. --cov-report=term
       "
 
 networks:

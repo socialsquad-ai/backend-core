@@ -2,6 +2,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Run Tests in Docker",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "docker compose -f docker-compose.test.yml up --build --abort-on-container-exit; docker compose -f docker-compose.test.yml down",
+            "cwd": "${workspaceFolder}"
+        },
+        {
             "name": "Start Postgres",
             "type": "node-terminal",
             "request": "launch",
