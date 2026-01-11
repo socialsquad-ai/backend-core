@@ -1,0 +1,61 @@
+name: Deploy to Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'develop'
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy to Heroku Staging
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Install Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: Login to Heroku Container Registry
+        run: echo ${{ secrets.HEROKU_API_KEY }} | docker login -u _ --password-stdin registry.heroku.com
+
+      - name: Build Docker Image
+        run: |
+          docker build \
+            --target heroku-production \
+            -t registry.heroku.com/${{ secrets.HEROKU_STAGING_APP }}/web \
+            -t registry.heroku.com/${{ secrets.HEROKU_STAGING_APP }}/worker \
+            .
+
+      - name: Push Web Image
+        run: docker push registry.heroku.com/${{ secrets.HEROKU_STAGING_APP }}/web
+
+      - name: Push Worker Image
+        run: docker push registry.heroku.com/${{ secrets.HEROKU_STAGING_APP }}/worker
+
+      - name: Release to Heroku
+        run: heroku container:release web worker -a ${{ secrets.HEROKU_STAGING_APP }}
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+
+      - name: Deployment Summary
+        run: |
+          echo "## 🚀 Staging Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **App** | ${{ secrets.HEROKU_STAGING_APP }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | ${{ inputs.branch }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **URL** | https://${{ secrets.HEROKU_STAGING_APP }}.herokuapp.com |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployed Processes" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **web** - API Server (FastAPI/Uvicorn)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **worker** - Background Worker (TaskIQ)" >> $GITHUB_STEP_SUMMARY

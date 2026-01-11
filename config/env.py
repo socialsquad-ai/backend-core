@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
@@ -27,11 +28,30 @@ SSQ_SECRET_KEY = Environment.get_string("SSQ_SECRET_KEY")
 SSQ_ALGORITHM = Environment.get_string("SSQ_ALGORITHM")
 SSQ_ACCESS_TOKEN_EXPIRE_MINUTES = Environment.get_int("SSQ_ACCESS_TOKEN_EXPIRE_MINUTES")
 
-SSQ_DB_NAME = Environment.get_string("SSQ_DB_NAME")
-SSQ_DB_USER = Environment.get_string("SSQ_DB_USER")
-SSQ_DB_HOST = Environment.get_string("SSQ_DB_HOST")
-SSQ_DB_PASSWORD = Environment.get_string("SSQ_DB_PASSWORD")
-SSQ_DB_PORT = Environment.get_int("SSQ_DB_PORT")
+# Database configuration
+# Heroku provides DATABASE_URL, local dev uses individual vars
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if DATABASE_URL:
+    # Heroku provides postgres:// but psycopg2/peewee needs postgresql://
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+    parsed = urlparse(DATABASE_URL)
+    SSQ_DB_HOST = parsed.hostname
+    SSQ_DB_PORT = parsed.port or 5432
+    SSQ_DB_USER = parsed.username
+    SSQ_DB_PASSWORD = parsed.password
+    SSQ_DB_NAME = parsed.path[1:]  # Remove leading slash
+    LoggerUtil.create_info_log(f"{SERVER_INIT_LOG_MESSAGE}::Using DATABASE_URL for database connection")
+else:
+    # Local development - use individual environment variables
+    SSQ_DB_NAME = Environment.get_string("SSQ_DB_NAME")
+    SSQ_DB_USER = Environment.get_string("SSQ_DB_USER")
+    SSQ_DB_HOST = Environment.get_string("SSQ_DB_HOST")
+    SSQ_DB_PASSWORD = Environment.get_string("SSQ_DB_PASSWORD")
+    SSQ_DB_PORT = Environment.get_int("SSQ_DB_PORT")
+
 APP_ENVIRONMENT = Environment.get_string("APP_ENVIRONMENT")
 
 # Auth0 Configuration (for token validation only)

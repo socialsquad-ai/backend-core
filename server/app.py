@@ -1,3 +1,4 @@
+import os
 import traceback
 import uuid
 from contextlib import asynccontextmanager
@@ -90,18 +91,23 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Add CORS middleware
+# CORS configuration
+# Use CORS_ORIGINS env var (comma-separated) for production, defaults for local dev
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:8080",
+    "http://localhost:8081",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:8080",
+]
+cors_origins_env = os.environ.get("CORS_ORIGINS", "")
+CORS_ORIGINS = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()] or DEFAULT_CORS_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:8080",
-        "http://localhost:8081",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://127.0.0.1:8080",
-    ],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

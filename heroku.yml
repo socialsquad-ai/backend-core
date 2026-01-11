@@ -1,0 +1,18 @@
+# Heroku deployment configuration
+# This file defines how Heroku builds and runs the application
+
+build:
+  docker:
+    # Both web and worker use the same Dockerfile, targeting heroku-production stage
+    web: Dockerfile
+    worker: Dockerfile
+  config:
+    DOCKER_BUILDKIT: 1
+
+run:
+  # Web dyno runs the API server
+  # $PORT is provided by Heroku dynamically
+  web: uvicorn server.app:app --host 0.0.0.0 --port $PORT
+
+  # Worker dyno runs the TaskIQ background worker
+  worker: taskiq worker server.pg_broker:broker
