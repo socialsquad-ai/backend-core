@@ -13,6 +13,7 @@ from data_adapter.user import User
 from data_adapter.webhook_logs import WebhookLog
 from logger.logging import LoggerUtil
 from usecases.ssq_agent import SSQAgent
+from utils.platform_service import PlatformService
 
 
 class WebhookManagement:
@@ -32,21 +33,6 @@ class WebhookManagement:
     ) -> Dict:
         """
         Handle an incoming comment according to the defined flow with retry and webhook logging.
-
-        Args:
-            webhook_id: Unique ID for the webhook event
-            comment_data: Dictionary containing comment details including 'text'
-            platform: The social media platform (e.g., 'instagram', 'youtube')
-            platform_user_id: The platform's user ID (e.g., Instagram Business Account ID)
-            post_id: The ID of the post where the comment was made
-            comment_id: The ID of the comment
-            parent_comment_id: The ID of the parent comment (if replying to a comment)
-            author_id: The ID of the comment author
-            author_username: The username of the comment author
-            comment: The comment text
-
-        Returns:
-            Dict containing response details or error information
         """
         LoggerUtil.create_info_log(f"Starting processing for webhook {webhook_id}, comment {comment_id}")
 
@@ -61,8 +47,6 @@ class WebhookManagement:
 
         user = integration.user
         user_id = user.id
-
-        persona_id = "34d5b364-8c69-4d2f-8d6c-2e57bf564f16"
 
         # Log the incoming webhook
         webhook_log = await cls._log_webhook(
@@ -104,23 +88,31 @@ class WebhookManagement:
                     "reason": "Outside engagement period or time window",
                 }
 
-            # 3. Check if comment is offensive/abusive
+            # 5. Check if comment is offensive/abusive
             if await cls._is_offensive_content(comment_data["text"], platform):
                 await cls._handle_offensive_comment(comment_id, platform, integration)
                 webhook_log.mark_completed({"action": "comment_deleted"})
                 return {"status": "completed", "action": "comment_deleted"}
 
-            # 4. Check if comment should be ignored
+            # 6. Check if comment should be ignored
             if await cls._should_ignore_comment(comment_data["text"], platform, post.ignore_instructions):
                 webhook_log.mark_completed({"action": "comment_ignored"})
                 return {"status": "skipped", "action": "comment_ignored"}
 
-            # 5. Generate reply using persona
-            reply = await cls._generate_reply(comment_data["text"], platform, persona_id)
+            # 7. Generate reply using persona
+            persona = cls._get_active_persona(user)
+            if not persona:
+                error_msg = f"No active persona found for user {user.id}"
+                LoggerUtil.create_error_log(error_msg)
+                # Fail or skip? If strict, fail.
+                webhook_log.mark_failed(error_msg)
+                return {"status": "error", "reason": "No active persona"}
+
+            reply = await cls._generate_reply(comment_data["text"], platform, persona)
             if not reply:
                 raise ValueError("Failed to generate reply")
 
-            # 6. Handle reply based on account settings
+            # 8. Handle reply based on account settings
             result = await cls._handle_reply(
                 user=user,
                 comment_id=comment_id,
@@ -136,6 +128,19 @@ class WebhookManagement:
             LoggerUtil.create_error_log(error_msg)
             webhook_log.mark_failed(error_msg)
             raise  # Will be caught by retry decorator
+
+    @classmethod
+    def _get_active_persona(cls, user: User) -> Optional[Persona]:
+        """
+        Get the active persona for the user.
+        Currently fetches the most recently updated persona.
+        """
+        try:
+            # Assuming the last updated persona is the active one
+            return Persona.select().where(Persona.user == user).order_by(Persona.updated_at.desc()).first()
+        except Exception as e:
+            LoggerUtil.create_error_log(f"Error fetching active persona: {str(e)}")
+            return None
 
     @classmethod
     async def _log_webhook(
@@ -252,13 +257,9 @@ class WebhookManagement:
             return False
 
     @classmethod
-    async def _generate_reply(cls, comment_text: str, platform: str, persona_id: str) -> Optional[str]:
+    async def _generate_reply(cls, comment_text: str, platform: str, persona: Persona) -> Optional[str]:
         """Generate a reply using the specified persona"""
         try:
-            persona = Persona.get_by_uuid(persona_id).first()
-            if not persona:
-                raise ValueError(f"Persona {persona_id} not found")
-
             reply_agent = SSQAgent(CREATE_REPLY_AGENT, platform, persona.instructions)
             return await reply_agent.generate_response(comment_text)
 
@@ -271,11 +272,13 @@ class WebhookManagement:
         """Handle offensive comment (e.g., delete it)"""
         try:
             LoggerUtil.create_info_log(f"Deleting offensive comment {comment_id}")
-            # In a real implementation, call platform API to delete comment
-            # await platform_api.delete_comment(
-            #     access_token=integration.access_token,
-            #     comment_id=comment_id
-            # )
+            success = await PlatformService.delete_comment(
+                platform=platform,
+                comment_id=comment_id,
+                access_token=integration.access_token,
+            )
+            if not success:
+                LoggerUtil.create_error_log(f"Failed to delete offensive comment {comment_id}")
         except Exception as e:
             LoggerUtil.create_error_log(f"Error deleting offensive comment {comment_id}: {str(e)}")
             raise
@@ -291,7 +294,10 @@ class WebhookManagement:
         """Handle reply based on user settings"""
         try:
             # 7. Check if approval is needed
-            if user.approval_needed:
+            # Use getattr to safely access approval_needed field, defaulting to False if missing
+            approval_needed = getattr(user, 'approval_needed', False)
+
+            if approval_needed:
                 LoggerUtil.create_info_log(f"Approval needed for reply to comment {comment_id}")
                 # In a real implementation, store the pending reply in the database
                 # and send notification to admin
@@ -304,19 +310,29 @@ class WebhookManagement:
 
             # Post reply directly if no approval needed
             LoggerUtil.create_info_log(f"Posting reply to comment {comment_id}")
-            import requests
 
-            requests.post(
-                f"https://graph.instagram.com/{comment_id}/replies?message={reply}",
-                headers={"Authorization": f"Bearer {integration.access_token}"},
+            success = await PlatformService.reply_to_comment(
+                platform=integration.platform,
+                comment_id=comment_id,
+                message=reply,
+                access_token=integration.access_token,
             )
 
-            return {
-                "action": "reply_posted",
-                "comment_id": comment_id,
-                "reply": reply,
-                "status": "posted",
-            }
+            if success:
+                return {
+                    "action": "reply_posted",
+                    "comment_id": comment_id,
+                    "reply": reply,
+                    "status": "posted",
+                }
+            else:
+                return {
+                    "action": "reply_failed",
+                    "comment_id": comment_id,
+                    "reply": reply,
+                    "status": "failed",
+                    "reason": "Platform API error"
+                }
 
         except Exception as e:
             LoggerUtil.create_error_log(f"Error handling reply: {str(e)}")

@@ -93,8 +93,6 @@ async def get_oauth_url(request: Request, platform: str):
         status_code = 400
     else:
         status_code = 500
-    if status_code == 200:
-        return RedirectResponse(url=data)
     return APIResponseFormat(
         status_code=status_code,
         message=error_message,
@@ -114,7 +112,7 @@ async def get_oauth_url(request: Request, platform: str):
 )
 async def handle_oauth_callback(request: Request, platform: str, code: str):
     """Handle OAuth callback and exchange code for tokens."""
-    error_message, data, errors = IntegrationManagement.handle_oauth_callback(platform, code, request)
+    error_message, data, errors = IntegrationManagement.handle_oauth_callback(platform, code)
     status_code = 200 if not error_message else 500
     if status_code == 200:
         return RedirectResponse(url=data)

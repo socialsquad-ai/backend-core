@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from peewee import ForeignKeyField
 from playhouse.postgres_ext import CharField, DateTimeField, JSONField, TextField
@@ -20,6 +20,7 @@ class Integration(BaseModel):
 
     class Meta:
         db_table = "integrations"
+        indexes = ((("platform_user_id", "platform"), True),)
 
     @classmethod
     def get_all_for_user(cls, user):
@@ -64,10 +65,17 @@ class Integration(BaseModel):
         )
 
     def get_details(self):
+        now = datetime.now(timezone.utc)
+        expires_at = self.expires_at
+
+        # Make expires_at aware if it isn't, assuming UTC
+        if expires_at and expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
         return {
             "uuid": str(self.uuid),
             "platform": self.platform,
-            "status": "active" if self.expires_at > datetime.now() else "inactive",
+            "status": "active" if expires_at > now else "inactive",
             "token_type": self.token_type,
             "created_at": self.created_at.isoformat(),
         }

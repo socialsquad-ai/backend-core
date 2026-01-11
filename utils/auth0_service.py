@@ -1,7 +1,7 @@
 from typing import Dict, Optional
 
+import httpx
 import jwt
-import requests
 
 from config import env
 from logger.logging import LoggerUtil
@@ -18,19 +18,20 @@ class Auth0Service:
         self._jwks = None
         self._jwks_url = f"https://{self.domain}/.well-known/jwks.json"
 
-    def _get_jwks(self) -> Dict:
+    async def _get_jwks(self) -> Dict:
         """Fetch JSON Web Key Set from Auth0"""
         if self._jwks is None:
             try:
-                response = requests.get(self._jwks_url, timeout=10)
-                response.raise_for_status()
-                self._jwks = response.json()
-            except requests.RequestException as e:
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(self._jwks_url, timeout=10)
+                    response.raise_for_status()
+                    self._jwks = response.json()
+            except httpx.RequestError as e:
                 LoggerUtil.create_error_log(f"Failed to fetch JWKS from Auth0: {e}")
                 raise CustomUnauthorized(detail="Authentication service unavailable")
         return self._jwks
 
-    def _get_signing_key(self, token: str) -> Optional[str]:
+    async def _get_signing_key(self, token: str) -> Optional[str]:
         """Get the signing key for the token"""
         try:
             # Decode the header without verification to get the key ID
@@ -40,7 +41,7 @@ class Auth0Service:
             if not key_id:
                 return None
 
-            jwks = self._get_jwks()
+            jwks = await self._get_jwks()
 
             # Find the key with matching key ID
             for key in jwks.get("keys", []):
@@ -70,7 +71,7 @@ class Auth0Service:
             LoggerUtil.create_error_log(f"Error getting signing key: {e}")
             return None
 
-    def validate_token(self, token: str) -> Dict:
+    async def validate_token(self, token: str) -> Dict:
         """Validate Auth0 JWT token and return payload"""
         try:
             # Remove 'Bearer ' prefix if present
@@ -78,7 +79,7 @@ class Auth0Service:
                 token = token[7:]
 
             # Get the signing key
-            signing_key = self._get_signing_key(token)
+            signing_key = await self._get_signing_key(token)
             if not signing_key:
                 raise CustomUnauthorized(detail="Invalid token signature")
 

@@ -30,7 +30,7 @@ def require_authentication(func):
         try:
             # Create Auth0Service instance and validate the token
             auth0_service = Auth0Service()
-            token_payload = auth0_service.validate_token(auth_header)
+            token_payload = await auth0_service.validate_token(auth_header)
 
             # Store user information in request state for potential use in the endpoint
             request.state.user = token_payload

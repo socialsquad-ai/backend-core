@@ -16,6 +16,8 @@ AGENT_NAME_PROMPT_MAPPING = {
 # Current supported platforms
 ALL_PLATFORMS = ["youtube", "instagram"]
 
+_jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader("prompts"))
+
 
 class PromptGenerator:
     def __init__(self, agent_name: str, platform: str, persona: str):
@@ -24,7 +26,7 @@ class PromptGenerator:
         self.persona = persona
 
     def get_prompt_for_agent(self):
-        template = jinja2.Environment(loader=jinja2.FileSystemLoader("prompts")).get_template(f"{AGENT_NAME_PROMPT_MAPPING[self.agent_name]}.j2")
+        template = _jinja_env.get_template(f"{AGENT_NAME_PROMPT_MAPPING[self.agent_name]}.j2")
 
         return template.render(
             all_platforms=ALL_PLATFORMS,

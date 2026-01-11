@@ -43,13 +43,41 @@ def validate_json_payload(payload_validation_schema: dict):
     return decorator
 
 
-def validate_query_params(func):
-    # TODO :: Add the logic to validate the query params
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        return await func(*args, **kwargs)
+def validate_query_params(validation_schema: dict):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            request = kwargs.get("request")
+            if request is None:
+                request = next((arg for arg in args if isinstance(arg, Request)), None)
 
-    return wrapper
+            if request:
+                query_params = dict(request.query_params)
+                v = None
+                try:
+                    v = CustomValidator(
+                        schema=validation_schema,
+                        allow_unknown=True,
+                        require_all=False,
+                    )
+                    is_validated = v.validate(query_params)
+                except Exception as e:
+                    LoggerUtil.create_error_log(
+                        "BAD_REQUEST_EXCEPTION: {}".format(e),
+                    )
+                    raise CustomBadRequest(detail="Invalid query parameters")
+
+                if not is_validated:
+                    LoggerUtil.create_error_log(
+                        "BAD_REQUEST:QueryParams:{},Error:{}".format(query_params, v.errors if v else None),
+                    )
+                    raise CustomBadRequest(detail="Invalid query parameters", errors=v.errors if v else None)
+
+            return await func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 def singleton_class(cls):
