@@ -4,7 +4,7 @@
         {
             "label": "docker-restart-dev",
             "type": "shell",
-            "command": "docker compose down && docker compose up -d --build && sleep 3",
+            "command": "docker compose down && docker compose up -d --build && echo 'Waiting for debugpy to be ready...' && sleep 8 && echo 'Services ready!'",
             "presentation": {
                 "reveal": "always",
                 "panel": "new",
@@ -13,6 +13,18 @@
             },
             "problemMatcher": [],
             "detail": "Restart all Docker services (Postgres, API, Worker) with development config"
+        },
+        {
+            "label": "docker-wait-for-debugpy",
+            "type": "shell",
+            "command": "echo 'Waiting for debugpy ports...' && until nc -z 127.0.0.1 5678 2>/dev/null; do sleep 1; done && until nc -z 127.0.0.1 5679 2>/dev/null; do sleep 1; done && echo 'debugpy ready!'",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared",
+                "showReuseMessage": false
+            },
+            "problemMatcher": [],
+            "detail": "Wait for debugpy ports to be available"
         },
         {
             "label": "docker-start-dev",

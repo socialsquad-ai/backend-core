@@ -131,7 +131,9 @@ services:
 
 volumes:
   postgres_data:
+    name: ssq-postgres-data
 
 networks:
   ssq-network:
+    name: ssq-network
     driver: bridge

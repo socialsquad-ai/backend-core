@@ -32,7 +32,8 @@
                     "remoteRoot": "/app"
                 }
             ],
-            "justMyCode": false
+            "justMyCode": false,
+            "preLaunchTask": "docker-wait-for-debugpy"
         },
         {
             "name": "Debug Worker (Docker)",
@@ -48,7 +49,8 @@
                     "remoteRoot": "/app"
                 }
             ],
-            "justMyCode": false
+            "justMyCode": false,
+            "preLaunchTask": "docker-wait-for-debugpy"
         },
         {
             "name": "Run Unit Tests (Docker)",
@@ -61,7 +63,11 @@
     "compounds": [
         {
             "name": "Debug All Services (API + Worker)",
-            "configurations": ["Debug API Server (Docker)", "Debug Worker (Docker)"],
+            "configurations": [
+                "Debug API Server (Docker)",
+                "Debug Worker (Docker)"
+            ],
+            "preLaunchTask": "docker-restart-dev",
             "stopAll": true
         }
     ]
