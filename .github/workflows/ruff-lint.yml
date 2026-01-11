@@ -3,7 +3,6 @@ name: Ruff Lint Check
 on:
   pull_request:
     branches:
-      - main
       - master
 
 jobs:
