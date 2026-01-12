@@ -14,4 +14,4 @@ pydantic-ai-slim[google,logfire]==0.7.5
 jinja2==3.1.6
 taskiq==0.11.18
 taskiq_fastapi==0.3.5
-taskiq-postgresql[asyncpg]==0.1.4
+taskiq-postgresql[asyncpg]==0.4.0
