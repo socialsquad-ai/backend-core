@@ -70,14 +70,24 @@ Add Postgres to the API apps, then attach to Worker apps:
 # Staging - Add Postgres to API app
 heroku addons:create heroku-postgresql:essential-0 -a ssq-api-staging
 
-# Attach the same database to Worker app
-heroku addons:attach $(heroku addons:info heroku-postgresql -a ssq-api-staging --json | jq -r '.name') -a ssq-worker-staging
+# Get the addon name and attach to Worker app
+heroku addons:attach $(heroku addons -a ssq-api-staging --json | jq -r '.[0].name') -a ssq-worker-staging
 
 # Production - Add Postgres to API app
 heroku addons:create heroku-postgresql:essential-0 -a ssq-api-production
 
-# Attach the same database to Worker app
-heroku addons:attach $(heroku addons:info heroku-postgresql -a ssq-api-production --json | jq -r '.name') -a ssq-worker-production
+# Get the addon name and attach to Worker app
+heroku addons:attach $(heroku addons -a ssq-api-production --json | jq -r '.[0].name') -a ssq-worker-production
+```
+
+**Alternative (if jq is not installed):**
+```bash
+# List addons to see the name
+heroku addons -a ssq-api-staging
+# Output shows something like: postgresql-cubed-12345
+
+# Then attach using that name
+heroku addons:attach postgresql-cubed-12345 -a ssq-worker-staging
 ```
 
 This sets `DATABASE_URL` on both API and Worker apps, pointing to the same database.
