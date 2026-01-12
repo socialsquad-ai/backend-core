@@ -1,11 +1,11 @@
 -- Create Persona Templates Table
-CREATE TABLE persona_templates (
+CREATE TABLE IF NOT EXISTS persona_templates (
     id SERIAL PRIMARY KEY,
     uuid UUID NOT NULL DEFAULT uuid_generate_v4(),
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     updated_at TIMESTAMP NOT NULL DEFAULT now(),
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL UNIQUE,
     description VARCHAR(255) NOT NULL,
     tone VARCHAR(255) NOT NULL,
     style VARCHAR(255) NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE persona_templates (
 );
 
 -- Create Personas Table
-CREATE TABLE personas (
+CREATE TABLE IF NOT EXISTS personas (
     id SERIAL PRIMARY KEY,
     uuid UUID NOT NULL DEFAULT uuid_generate_v4(),
     created_at TIMESTAMP NOT NULL DEFAULT now(),
@@ -28,18 +28,21 @@ CREATE TABLE personas (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
-CREATE INDEX idx_personas_user_id ON personas(user_id);
+CREATE INDEX IF NOT EXISTS idx_personas_user_id ON personas(user_id);
 
 
--- Add persona templates
+-- Add persona templates (idempotent - will skip if name already exists)
 -- 1. Professional - formal and to the point
 INSERT INTO persona_templates (name, description, tone, style, instructions) VALUES
-('Professional', 'A persona for formal and concise communication.', 'Formal', 'To the point', 'Maintain a professional and objective tone. Focus on clear, direct communication without unnecessary embellishments. Use standard business language.');
+('Professional', 'A persona for formal and concise communication.', 'Formal', 'To the point', 'Maintain a professional and objective tone. Focus on clear, direct communication without unnecessary embellishments. Use standard business language.')
+ON CONFLICT (name) DO NOTHING;
 
 -- 2. Friendly & Casual - Like a warm and approachable friend
 INSERT INTO persona_templates (name, description, tone, style, instructions) VALUES
-('Friendly & Casual', 'A persona that is warm, approachable, and informal.', 'Friendly', 'Conversational', 'Adopt a warm and approachable tone. Use casual language, contractions, and relatable examples. Aim to build rapport and sound like a helpful friend.');
+('Friendly & Casual', 'A persona that is warm, approachable, and informal.', 'Friendly', 'Conversational', 'Adopt a warm and approachable tone. Use casual language, contractions, and relatable examples. Aim to build rapport and sound like a helpful friend.')
+ON CONFLICT (name) DO NOTHING;
 
 -- 3. Witty & Playful - Fun, engaging and humourous
 INSERT INTO persona_templates (name, description, tone, style, instructions) VALUES
-('Witty & Playful', 'A persona that is fun, engaging, and incorporates humor.', 'Playful', 'Humorous and engaging', 'Inject humor, clever wordplay, and lightheartedness. Be engaging and entertaining, while still conveying the core message. Avoid overly serious or dry language.');
+('Witty & Playful', 'A persona that is fun, engaging, and incorporates humor.', 'Playful', 'Humorous and engaging', 'Inject humor, clever wordplay, and lightheartedness. Be engaging and entertaining, while still conveying the core message. Avoid overly serious or dry language.')
+ON CONFLICT (name) DO NOTHING;
