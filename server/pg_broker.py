@@ -32,7 +32,7 @@ else:
 
 # Pool settings passed via pool_kwargs (asyncpg pool parameters)
 # These are NOT DSN parameters - they go to asyncpg.create_pool()
-pool_kwargs = {"min_size": 1, "max_size": 2} if is_heroku else None
+pool_kwargs = {"min_size": 1, "max_size": 2} if is_heroku else {"min_size": 2, "max_size": 4}
 
 # Create the broker instance
 broker = PostgresqlBroker(
