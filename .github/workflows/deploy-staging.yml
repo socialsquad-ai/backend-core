@@ -1,0 +1,91 @@
+name: Deploy to Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'develop'
+        type: string
+
+jobs:
+  deploy-api:
+    name: Deploy API to Staging
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Install Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: Login to Heroku Container Registry
+        run: echo ${{ secrets.HEROKU_API_KEY }} | docker login -u _ --password-stdin registry.heroku.com
+
+      - name: Build API Image
+        run: |
+          docker build \
+            --target production \
+            -t registry.heroku.com/${{ secrets.HEROKU_STAGING_API_APP }}/web \
+            .
+
+      - name: Push API Image
+        run: docker push registry.heroku.com/${{ secrets.HEROKU_STAGING_API_APP }}/web
+
+      - name: Release API
+        run: heroku container:release web -a ${{ secrets.HEROKU_STAGING_API_APP }}
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+
+  deploy-worker:
+    name: Deploy Worker to Staging
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Install Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: Login to Heroku Container Registry
+        run: echo ${{ secrets.HEROKU_API_KEY }} | docker login -u _ --password-stdin registry.heroku.com
+
+      - name: Build Worker Image
+        run: |
+          docker build \
+            --target worker-production \
+            -t registry.heroku.com/${{ secrets.HEROKU_STAGING_WORKER_APP }}/web \
+            .
+
+      - name: Push Worker Image
+        run: docker push registry.heroku.com/${{ secrets.HEROKU_STAGING_WORKER_APP }}/web
+
+      - name: Release Worker
+        run: heroku container:release web -a ${{ secrets.HEROKU_STAGING_WORKER_APP }}
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+
+  summary:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [deploy-api, deploy-worker]
+
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "## Staging Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | App | URL |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-----|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| **API** | ${{ secrets.HEROKU_STAGING_API_APP }} | https://${{ secrets.HEROKU_STAGING_API_APP }}.herokuapp.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Worker** | ${{ secrets.HEROKU_STAGING_WORKER_APP }} | N/A (background) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ inputs.branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
