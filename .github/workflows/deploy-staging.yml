@@ -37,7 +37,7 @@ jobs:
         run: |
           echo "Checking API health..."
           for i in {1..15}; do
-            response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ secrets.HEROKU_STAGING_API_APP }}.herokuapp.com/v1/status/ || echo "000")
+            response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ secrets.HEROKU_STAGING_API_URL }}/v1/status/ || echo "000")
             if [ "$response" = "200" ]; then
               echo "✅ API is healthy (HTTP $response)"
               exit 0
@@ -89,7 +89,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Service | App | URL |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|-----|-----|" >> $GITHUB_STEP_SUMMARY
-          echo "| **API** | ${{ secrets.HEROKU_STAGING_API_APP }} | https://${{ secrets.HEROKU_STAGING_API_APP }}.herokuapp.com |" >> $GITHUB_STEP_SUMMARY
+          echo "| **API** | ${{ secrets.HEROKU_STAGING_API_APP }} | https://${{ secrets.HEROKU_STAGING_API_URL }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Worker** | ${{ secrets.HEROKU_STAGING_WORKER_APP }} | N/A (background) |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
