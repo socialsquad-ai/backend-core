@@ -36,3 +36,10 @@ PLATFORM_NAME_DESCRIPTION = {
     "youtube": "Comments on YouTube videos can be up to 2000 characters long and can contain emojis.",
     "instagram": "Comments on Instagram photos and videos can be up to 1024 characters long and can contain emojis.",
 }
+
+# AI Model Configuration
+GEMINI_MODEL_NAME = "gemini-2.5-flash-lite"
+GEMINI_MAX_TOKENS = 100
+GEMINI_TEMPERATURE = 0.9
+GEMINI_TOP_P = 0.5
+GEMINI_TIMEOUT = 15

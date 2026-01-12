@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from data_adapter.personas import Persona, PersonaTemplate
 from data_adapter.user import User
@@ -49,6 +49,8 @@ class PersonaManagement:
         tone: str,
         style: str,
         instructions: str,
+        content_categories: List[str],
+        role: str,
         personal_details: Optional[str] = None,
     ) -> Tuple[str, Optional[Dict[str, Any]], Optional[str]]:
         """
@@ -73,6 +75,8 @@ class PersonaManagement:
                 tone=tone,
                 style=style,
                 instructions=instructions,
+                role=role,
+                content_categories=content_categories,
                 personal_details=personal_details or "",
             )
 

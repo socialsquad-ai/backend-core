@@ -42,13 +42,15 @@ class Persona(BaseModel):
         db_table = "personas"
 
     @classmethod
-    def create_persona(cls, user: User, name, tone, style, instructions, personal_details):
+    def create_persona(cls, user: User, name, tone, style, instructions, role, content_categories, personal_details):
         persona = cls.create(
             user=user,
             name=name,
             tone=tone,
             style=style,
             instructions=instructions,
+            role=role,
+            content_categories=content_categories,
             personal_details=personal_details,
         )
         return persona.refresh()
