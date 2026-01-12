@@ -30,7 +30,7 @@ jobs:
           echo "========================================"
           for sql_file in $(ls -1 data_adapter/sql-postgres/*.sql | sort); do
             echo "Executing: $(basename $sql_file)"
-            heroku pg:psql -a ${{ secrets.HEROKU_PRODUCTION_API_APP }} < "$sql_file"
+            heroku pg:psql -a ${{ secrets.HEROKU_PRODUCTION_API_APP }} --file "$sql_file"
           done
           echo "========================================"
           echo "✅ All migrations completed"

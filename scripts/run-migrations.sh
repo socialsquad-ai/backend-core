@@ -41,7 +41,7 @@ if [ "$1" == "--heroku" ] && [ -n "$2" ]; then
     for sql_file in $SQL_FILES; do
         filename=$(basename "$sql_file")
         echo "Executing: $filename"
-        heroku pg:psql -a "$APP_NAME" < "$sql_file"
+        heroku pg:psql -a "$APP_NAME" --file "$sql_file"
         echo "  Done"
     done
 else
