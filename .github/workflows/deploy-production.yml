@@ -2,12 +2,6 @@ name: Deploy to Production
 
 on:
   workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to deploy'
-        required: true
-        default: 'master'
-        type: string
 
 jobs:
   deploy-api:
@@ -15,10 +9,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Verify master branch
+        if: github.ref_name != 'master'
+        run: |
+          echo "❌ Production deployments are only allowed from master branch"
+          echo "Current branch: ${{ github.ref_name }}"
+          exit 1
+
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.branch }}
 
       - name: Install Heroku CLI
         run: curl https://cli-assets.heroku.com/install.sh | sh
@@ -63,8 +62,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.branch }}
 
       - name: Install Heroku CLI
         run: curl https://cli-assets.heroku.com/install.sh | sh
@@ -102,5 +99,5 @@ jobs:
           echo "| **API** | ${{ secrets.HEROKU_PRODUCTION_API_APP }} | https://${{ secrets.HEROKU_PRODUCTION_API_APP }}.herokuapp.com |" >> $GITHUB_STEP_SUMMARY
           echo "| **Worker** | ${{ secrets.HEROKU_PRODUCTION_WORKER_APP }} | N/A (background) |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** ${{ inputs.branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** master" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
