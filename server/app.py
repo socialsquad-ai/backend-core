@@ -1,4 +1,3 @@
-import os
 import traceback
 import uuid
 from contextlib import asynccontextmanager
@@ -92,22 +91,11 @@ app = FastAPI(
 )
 
 # CORS configuration
-# Use CORS_ORIGINS env var (comma-separated) for production, defaults for local dev
-DEFAULT_CORS_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://localhost:8080",
-    "http://localhost:8081",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001",
-    "http://127.0.0.1:8080",
-]
-cors_origins_env = os.environ.get("CORS_ORIGINS", "")
-CORS_ORIGINS = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()] or DEFAULT_CORS_ORIGINS
-
+# CORS configuration - allow all origins for testing
+# TODO: Restrict CORS_ORIGINS in production for security
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
