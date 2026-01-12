@@ -203,10 +203,28 @@ In your GitHub repository, go to **Settings → Secrets and variables → Action
 | Secret | Description | Example |
 |--------|-------------|---------|
 | `HEROKU_API_KEY` | Your Heroku API key | Found in Heroku Account Settings |
-| `HEROKU_STAGING_API_APP` | Staging API app name | `ssq-api-staging` |
+| `HEROKU_STAGING_API_APP` | Staging API app name (for Heroku CLI) | `ssq-api-staging` |
 | `HEROKU_STAGING_WORKER_APP` | Staging Worker app name | `ssq-worker-staging` |
+| `HEROKU_STAGING_API_URL` | Staging API URL for health checks | `api-staging.yourdomain.com` |
 | `HEROKU_PRODUCTION_API_APP` | Production API app name | `ssq-api-production` |
 | `HEROKU_PRODUCTION_WORKER_APP` | Production Worker app name | `ssq-worker-production` |
+| `HEROKU_PRODUCTION_API_URL` | Production API URL for health checks | `api.yourdomain.com` |
+
+**Important: App Name vs URL**
+
+Heroku may append a random suffix to your app name to ensure uniqueness. For example:
+- You create: `ssq-api-staging`
+- Heroku assigns: `ssq-api-staging-32f5738ea9dd`
+
+The `_APP` secrets use the app name (for Heroku CLI commands), while `_URL` secrets use the custom domain (for health checks). If you haven't set up custom domains yet, use the full Heroku hostname (without `https://`):
+
+```bash
+# Find your actual app hostname
+heroku apps:info -a ssq-api-staging | grep "Web URL"
+# Output: https://ssq-api-staging-32f5738ea9dd.herokuapp.com
+
+# Use: ssq-api-staging-32f5738ea9dd.herokuapp.com for HEROKU_STAGING_API_URL
+```
 
 **To get your Heroku API key:**
 1. Go to [Heroku Account Settings](https://dashboard.heroku.com/account)
@@ -409,17 +427,34 @@ heroku domains:remove api.yourdomain.com -a ssq-api-production
 
 ### Via GitHub Actions (Recommended)
 
+#### Deploy to Staging
+
 1. Go to **Actions** tab in GitHub
-2. Select **Deploy to Staging** or **Deploy to Production**
+2. Select **Deploy to Staging**
 3. Click **Run workflow**
-4. Select the branch to deploy
+4. Select any branch from the **"Use workflow from"** dropdown
 5. Click **Run workflow**
 
-The workflow will:
-- Build the Docker images
+**Note:** Staging can be deployed from any branch, making it ideal for testing feature branches.
+
+#### Deploy to Production
+
+1. Go to **Actions** tab in GitHub
+2. Select **Deploy to Production**
+3. Click **Run workflow**
+4. Select **master** from the dropdown (other branches will fail)
+5. Click **Run workflow**
+
+**Note:** Production deployments are restricted to the `master` branch only. Attempting to deploy from other branches will fail with an error.
+
+#### What the Workflow Does
+
+Both workflows will:
+- Build the Docker images (API and Worker)
 - Push to Heroku Container Registry
 - Release both API and Worker apps
-- Show deployment summary
+- Run health check on the API (15 attempts, 1 second apart)
+- Show deployment summary with URLs
 
 ### Manual Deployment
 
@@ -711,6 +746,39 @@ heroku pg:psql -a ssq-api-staging
 # Then paste SQL commands
 ```
 
+### Connection Limits
+
+Heroku Postgres plans have connection limits:
+
+| Plan | Max Connections |
+|------|-----------------|
+| Essential-0 | 20 |
+| Essential-1 | 40 |
+| Standard-0 | 120 |
+
+Our application uses connections from:
+- **API dyno**: Peewee ORM + TaskIQ broker pool
+- **Worker dyno**: TaskIQ broker pool + result backend pool
+
+The codebase automatically configures smaller connection pools when running on Heroku (detected via `DYNO` environment variable):
+- TaskIQ pools: `min_size=1, max_size=2` per pool
+- Total estimated: ~12-14 connections (under the 20 limit for Essential-0)
+
+**If you see "too many connections" errors:**
+1. Check current connection count:
+   ```bash
+   heroku pg:info -a ssq-api-staging | grep Connections
+   ```
+2. Restart dynos to release stale connections:
+   ```bash
+   heroku restart -a ssq-api-staging
+   heroku restart -a ssq-worker-staging
+   ```
+3. Consider upgrading to Essential-1 (40 connections) if needed:
+   ```bash
+   heroku addons:upgrade heroku-postgresql:essential-1 -a ssq-api-staging
+   ```
+
 ### Database Backups
 
 ```bash
@@ -838,9 +906,39 @@ heroku logs --tail -a ssq-api-staging
 
 **Common issues:**
 - Missing config vars (`DATABASE_URL`, `AUTH0_*`, etc.)
-- Database connection failures
+- Database connection failures (SSL required on Heroku)
 - Port binding issues (ensure using `$PORT` from Heroku)
 - Missing dependencies in requirements.txt
+- Too many database connections (see Connection Limits section)
+
+### SSL Connection Required
+
+Heroku Postgres requires SSL connections. If you see SSL-related errors, ensure your connection string includes `sslmode=require`:
+
+```
+postgresql://user:pass@host:port/db?sslmode=require
+```
+
+The codebase handles this automatically when `DYNO` environment variable is detected.
+
+### Health Check Failing in GitHub Actions
+
+If deployment succeeds but health check fails:
+
+1. **Check the app is actually running:**
+   ```bash
+   heroku ps -a ssq-api-staging
+   heroku logs --tail -a ssq-api-staging
+   ```
+
+2. **Verify the URL secret is correct:**
+   - `HEROKU_STAGING_API_URL` should be your custom domain (e.g., `api-staging.yourdomain.com`)
+   - Or the full Heroku hostname without `https://` (e.g., `ssq-api-staging-abc123.herokuapp.com`)
+
+3. **Test the health endpoint manually:**
+   ```bash
+   curl https://your-api-url/v1/status/
+   ```
 
 ### Worker Not Processing Tasks
 
