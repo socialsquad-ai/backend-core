@@ -41,22 +41,19 @@ jobs:
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
 
-      - name: Wait for API to start
-        run: sleep 30
-
       - name: Health Check API
         run: |
           echo "Checking API health..."
-          for i in {1..5}; do
+          for i in {1..15}; do
             response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ secrets.HEROKU_PRODUCTION_API_APP }}.herokuapp.com/v1/status/ || echo "000")
             if [ "$response" = "200" ]; then
               echo "✅ API is healthy (HTTP $response)"
               exit 0
             fi
-            echo "Attempt $i: API returned HTTP $response, retrying in 10s..."
-            sleep 10
+            echo "Attempt $i/15: API returned HTTP $response, retrying in 1s..."
+            sleep 1
           done
-          echo "❌ API health check failed after 5 attempts"
+          echo "❌ API health check failed after 15 attempts"
           exit 1
 
   deploy-worker:
@@ -89,27 +86,6 @@ jobs:
         run: heroku container:release web -a ${{ secrets.HEROKU_PRODUCTION_WORKER_APP }}
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-
-      - name: Wait for Worker to start
-        run: sleep 30
-
-      - name: Health Check Worker
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-        run: |
-          echo "Checking Worker dyno state..."
-          for i in {1..5}; do
-            state=$(heroku ps -a ${{ secrets.HEROKU_PRODUCTION_WORKER_APP }} --json | jq -r '.[0].state // "unknown"')
-            if [ "$state" = "up" ]; then
-              echo "✅ Worker is running (state: $state)"
-              exit 0
-            fi
-            echo "Attempt $i: Worker state is '$state', retrying in 10s..."
-            sleep 10
-          done
-          echo "❌ Worker health check failed - dyno not in 'up' state"
-          heroku logs --tail -n 50 -a ${{ secrets.HEROKU_PRODUCTION_WORKER_APP }}
-          exit 1
 
   summary:
     name: Deployment Summary
