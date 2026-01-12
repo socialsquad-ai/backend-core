@@ -79,4 +79,6 @@ services:
   # Development overrides for PostgreSQL
   postgres:
     container_name: ssq-postgres-dev
+    ports:
+      - "5433:5432"  # Use 5433 to avoid conflict with local PostgreSQL
     restart: "no"
