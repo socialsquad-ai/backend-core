@@ -4,6 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## CRITICAL REQUIREMENTS
 
+### Git Commits (STRICT)
+
+**NEVER commit code directly.** Always let the user review and commit changes themselves. This includes:
+- Do NOT run `git add` and `git commit` commands
+- Do NOT run `git push` commands
+- Only make file edits - the user will handle version control
+
 ### Swagger Documentation (MANDATORY)
 
 **Every time you add or modify an API endpoint, you MUST update Swagger documentation:**
