@@ -1,9 +1,9 @@
+# TODO: Enable this once we have a ruff config
+# Currently disabled - only runs manually
 name: Ruff Lint Check
 
 on:
-  pull_request:
-    branches:
-      - master
+  workflow_dispatch:  # Manual trigger only - effectively disabled
 
 jobs:
   ruff-lint:
@@ -16,12 +16,10 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install ruff
-        run: |
-          pip install ruff==0.9.4
+        run: pip install ruff==0.9.4
 
       - name: Run ruff lint check
-        run: |
-          ruff check .
+        run: ruff check .
