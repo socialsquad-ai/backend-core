@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from config.non_env import API_VERSION_V1
 
+from config.non_env import API_VERSION_V1
 from decorators.user import require_authentication
 from usecases.instagram_management import get_instagram_post, get_instagram_post_comments, get_instagram_posts
 from utils.contextvar import get_context_user
