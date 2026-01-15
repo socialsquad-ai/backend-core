@@ -1,6 +1,6 @@
 from typing import Dict
 
-from config.non_env import PLATFORM_INSTAGRAM
+from config.non_env import Platform
 from logger.logging import LoggerUtil
 from server.pg_broker import broker
 from usecases.webhook_management import WebhookManagement
@@ -12,7 +12,7 @@ async def process_meta_comment_change(webhook_data: Dict):
     await WebhookManagement.handle_incoming_comment(
         webhook_id=webhook_data["id"],
         comment_data=webhook_data,
-        platform=PLATFORM_INSTAGRAM,
+        platform=Platform.INSTAGRAM,
         platform_user_id=webhook_data["platform_user_id"],
         post_id=webhook_data["media"]["id"],
         comment_id=webhook_data["id"],

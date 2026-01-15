@@ -1,3 +1,5 @@
+from enum import Enum
+
 # Version prefix constants
 API_VERSION_V1 = "/v1"
 API_VERSION_V2 = "/v2"
@@ -29,9 +31,11 @@ USER_PROMPT = {
     DELETE_COMMENT_AGENT: "Check if the user comment should be deleted",
 }
 
+class Platform(Enum):
+    INSTAGRAM = "instagram"
+    YOUTUBE = "youtube"
+
 # Platform Info
-PLATFORM_INSTAGRAM = "instagram"
-PLATFORM_YOUTUBE = "youtube"
 PLATFORM_NAME_DESCRIPTION = {
     "youtube": "Comments on YouTube videos can be up to 2000 characters long and can contain emojis.",
     "instagram": "Comments on Instagram photos and videos can be up to 1024 characters long and can contain emojis.",
@@ -43,3 +47,6 @@ GEMINI_MAX_TOKENS = 100
 GEMINI_TEMPERATURE = 0.9
 GEMINI_TOP_P = 0.5
 GEMINI_TIMEOUT = 15
+
+# Instagram API
+INSTAGRAM_GRAPH_API_BASE_URL = "https://graph.facebook.com/v20.0"
