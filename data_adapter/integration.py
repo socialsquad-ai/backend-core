@@ -40,6 +40,11 @@ class Integration(BaseModel):
         return cls.select_query().where(cls.platform_user_id == platform_user_id, cls.platform == platform).first()
 
     @classmethod
+    def get_by_user_id_and_platform(cls, user_id: str, platform: str):
+        """Get integration by user ID and platform type."""
+        return cls.select_query().join(User).where(User.id == user_id, cls.platform == platform).first()
+
+    @classmethod
     def create_integration(
         cls,
         user,

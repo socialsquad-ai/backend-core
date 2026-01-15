@@ -1,7 +1,45 @@
 import httpx
 
-from config.non_env import PLATFORM_INSTAGRAM
+from config.non_env import INSTAGRAM_GRAPH_API_BASE_URL, Platform
 from logger.logging import LoggerUtil
+
+
+async def _make_instagram_api_request(url: str, access_token: str, params: dict = None):
+    """Helper function to make requests to Instagram Graph API."""
+    if params is None:
+        params = {}
+    params["access_token"] = access_token
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            LoggerUtil.create_error_log(f"HTTP error occurred: {e.response.text}")
+            # Consider how to propagate this error
+            return {"error": f"HTTP error: {e.response.status_code}"}
+        except Exception as e:
+            LoggerUtil.create_error_log(f"An unexpected error occurred: {str(e)}")
+            return {"error": "An unexpected error occurred."}
+
+async def get_instagram_media(access_token: str, fields: str = None):
+    """Get all media for the user."""
+    url = f"{INSTAGRAM_GRAPH_API_BASE_URL}/me/media"
+    params = {"fields": fields} if fields else {}
+    return await _make_instagram_api_request(url, access_token, params)
+
+async def get_instagram_media_by_id(media_id: str, access_token: str, fields: str = None):
+    """Get a specific media by its ID."""
+    url = f"{INSTAGRAM_GRAPH_API_BASE_URL}/{media_id}"
+    params = {"fields": fields} if fields else {}
+    return await _make_instagram_api_request(url, access_token, params)
+
+async def get_instagram_media_comments(media_id: str, access_token: str, fields: str = None):
+    """Get comments for a specific media."""
+    url = f"{INSTAGRAM_GRAPH_API_BASE_URL}/{media_id}/comments"
+    params = {"fields": fields} if fields else {}
+    return await _make_instagram_api_request(url, access_token, params)
 
 
 class PlatformService:
@@ -11,9 +49,8 @@ class PlatformService:
         Delete a comment on the specified platform.
         """
         try:
-            if platform == PLATFORM_INSTAGRAM:
-                # Instagram Graph API: DELETE /{comment-id}
-                url = f"https://graph.facebook.com/v19.0/{comment_id}"
+            if platform == Platform.INSTAGRAM.value:
+                url = f"{INSTAGRAM_GRAPH_API_BASE_URL}/{comment_id}"
                 async with httpx.AsyncClient() as client:
                     response = await client.delete(url, params={"access_token": access_token})
 
@@ -37,9 +74,8 @@ class PlatformService:
         Reply to a comment on the specified platform.
         """
         try:
-            if platform == PLATFORM_INSTAGRAM:
-                # Instagram Graph API: POST /{comment-id}/replies
-                url = f"https://graph.facebook.com/v19.0/{comment_id}/replies"
+            if platform == Platform.INSTAGRAM.value:
+                url = f"{INSTAGRAM_GRAPH_API_BASE_URL}/{comment_id}/replies"
                 async with httpx.AsyncClient() as client:
                     response = await client.post(
                         url,
