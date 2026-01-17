@@ -20,6 +20,7 @@ FILTER_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 CREATE_REPLY_AGENT = "create_reply_agent"
 IGNORE_COMMENT_AGENT = "ignore_comment_agent"
 DELETE_COMMENT_AGENT = "delete_comment_agent"
+DETECT_INTENT_AGENT = "detect_intent_agent"
 
 # Webhook Configuration
 META_VERIFY_TOKEN = "ssq_meta"  # Token for Meta webhook verification
@@ -29,6 +30,7 @@ USER_PROMPT = {
     CREATE_REPLY_AGENT: "Reply to the user comment",
     IGNORE_COMMENT_AGENT: "Check if the user comment should be ignored",
     DELETE_COMMENT_AGENT: "Check if the user comment should be deleted",
+    DETECT_INTENT_AGENT: "Check if the user comment matches a specific intent",
 }
 
 class Platform(Enum):

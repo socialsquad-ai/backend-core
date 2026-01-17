@@ -96,3 +96,37 @@ class PlatformService:
         except Exception as e:
             LoggerUtil.create_error_log(f"Exception in reply_to_comment: {str(e)}")
             return False
+
+    @staticmethod
+    async def send_direct_message(platform: str, recipient_id: str, message: str, access_token: str) -> bool:
+        """
+        Send a direct message on the specified platform.
+        """
+        try:
+            if platform == Platform.INSTAGRAM.value:
+                url = f"{INSTAGRAM_GRAPH_API_BASE_URL}/me/messages"
+                payload = {
+                    "recipient": {"id": recipient_id},
+                    "message": {"text": message},
+                    "messaging_type": "RESPONSE"
+                }
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        url,
+                        params={"access_token": access_token},
+                        json=payload
+                    )
+
+                if response.status_code == 200:
+                    LoggerUtil.create_info_log(f"Successfully sent DM to {recipient_id}")
+                    return True
+                else:
+                    LoggerUtil.create_error_log(f"Failed to send DM to {recipient_id}: {response.text}")
+                    return False
+
+            LoggerUtil.create_error_log(f"Unsupported platform for send_direct_message: {platform}")
+            return False
+
+        except Exception as e:
+            LoggerUtil.create_error_log(f"Exception in send_direct_message: {str(e)}")
+            return False
