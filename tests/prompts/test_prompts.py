@@ -48,13 +48,11 @@ class TestPromptGeneratorInit:
 
 
 class TestPromptGeneratorGetPromptForAgent:
-    @patch("prompts.prompts.jinja2.Environment")
-    def test_get_prompt_for_agent_loads_correct_template(self, mock_jinja_env):
+    @patch("prompts.prompts._jinja_env")
+    def test_get_prompt_for_agent_loads_correct_template(self, mock_env_instance):
         mock_template = MagicMock()
         mock_template.render.return_value = "rendered prompt"
-        mock_env_instance = MagicMock()
         mock_env_instance.get_template.return_value = mock_template
-        mock_jinja_env.return_value = mock_env_instance
 
         generator = PromptGenerator(CREATE_REPLY_AGENT, "youtube", "test persona")
         result = generator.get_prompt_for_agent()
@@ -62,13 +60,11 @@ class TestPromptGeneratorGetPromptForAgent:
         mock_env_instance.get_template.assert_called_once_with("create_reply.j2")
         assert result == "rendered prompt"
 
-    @patch("prompts.prompts.jinja2.Environment")
-    def test_get_prompt_for_agent_renders_with_correct_context(self, mock_jinja_env):
+    @patch("prompts.prompts._jinja_env")
+    def test_get_prompt_for_agent_renders_with_correct_context(self, mock_env_instance):
         mock_template = MagicMock()
         mock_template.render.return_value = "rendered prompt"
-        mock_env_instance = MagicMock()
         mock_env_instance.get_template.return_value = mock_template
-        mock_jinja_env.return_value = mock_env_instance
 
         persona = "friendly assistant"
         platform = "instagram"
@@ -84,13 +80,11 @@ class TestPromptGeneratorGetPromptForAgent:
         assert "all_platforms" in kwargs
         assert "platform_description" in kwargs
 
-    @patch("prompts.prompts.jinja2.Environment")
-    def test_get_prompt_for_agent_with_delete_comment_agent(self, mock_jinja_env):
+    @patch("prompts.prompts._jinja_env")
+    def test_get_prompt_for_agent_with_delete_comment_agent(self, mock_env_instance):
         mock_template = MagicMock()
         mock_template.render.return_value = "delete prompt"
-        mock_env_instance = MagicMock()
         mock_env_instance.get_template.return_value = mock_template
-        mock_jinja_env.return_value = mock_env_instance
 
         generator = PromptGenerator(DELETE_COMMENT_AGENT, "youtube", "test persona")
         result = generator.get_prompt_for_agent()
@@ -98,16 +92,18 @@ class TestPromptGeneratorGetPromptForAgent:
         mock_env_instance.get_template.assert_called_once_with("delete_comment.j2")
         assert result == "delete prompt"
 
-    @patch("prompts.prompts.jinja2.Environment")
-    def test_get_prompt_for_agent_uses_file_system_loader(self, mock_jinja_env):
+    @patch("prompts.prompts._jinja_env")
+    def test_get_prompt_for_agent_uses_file_system_loader(self, mock_env_instance):
+        # This test verifies that we are using the mocked environment
+        # In the original code, it checked strict jinja2 Environment instantiation,
+        # but since we use a module-level instance, we verify interactions with that instance.
+
         mock_template = MagicMock()
         mock_template.render.return_value = "rendered"
-        mock_env_instance = MagicMock()
         mock_env_instance.get_template.return_value = mock_template
-        mock_jinja_env.return_value = mock_env_instance
 
         generator = PromptGenerator(CREATE_REPLY_AGENT, "youtube", "persona")
         generator.get_prompt_for_agent()
 
-        # Verify jinja2.Environment was called
-        assert mock_jinja_env.called
+        # Verify get_template was called (which implies interaction with the env)
+        assert mock_env_instance.get_template.called

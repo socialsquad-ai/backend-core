@@ -78,7 +78,7 @@ class TestSSQAgentGenerateResponse:
 
         mock_agent_instance = Mock()
         mock_result = Mock()
-        mock_result.output = "This is a response"
+        mock_result.data = "This is a response"
         mock_agent_instance.run = AsyncMock(return_value=mock_result)
         mock_agent_class.return_value = mock_agent_instance
 
@@ -98,7 +98,7 @@ class TestSSQAgentGenerateResponse:
 
         mock_agent_instance = Mock()
         mock_result = Mock()
-        mock_result.output = '"This is quoted"'
+        mock_result.data = '"This is quoted"'
         mock_agent_instance.run = AsyncMock(return_value=mock_result)
         mock_agent_class.return_value = mock_agent_instance
 
@@ -118,14 +118,14 @@ class TestSSQAgentGenerateResponse:
 
         mock_agent_instance = Mock()
         mock_result = Mock()
-        mock_result.output = '"Only start quote'
+        mock_result.data = '"Only start quote'
         mock_agent_instance.run = AsyncMock(return_value=mock_result)
         mock_agent_class.return_value = mock_agent_instance
 
         agent = SSQAgent(CREATE_REPLY_AGENT, "instagram", "persona")
         result = await agent.generate_response("Comment")
 
-        assert result == '"Only start quote'
+        assert result == 'Only start quote'
 
     @patch("usecases.ssq_agent.GoogleModel")
     @patch("usecases.ssq_agent.Agent")
@@ -138,7 +138,7 @@ class TestSSQAgentGenerateResponse:
 
         mock_agent_instance = Mock()
         mock_result = Mock()
-        mock_result.output = True
+        mock_result.data = True
         mock_agent_instance.run = AsyncMock(return_value=mock_result)
         mock_agent_class.return_value = mock_agent_instance
 

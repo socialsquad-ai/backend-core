@@ -46,9 +46,27 @@ class TestPersonaCreatePersona:
         mock_refreshed_persona = Mock()
         mock_persona.refresh.return_value = mock_refreshed_persona
 
-        result = Persona.create_persona(user=mock_user, name="Test Persona", tone="Casual", style="Friendly", instructions="Be friendly", personal_details="Some details")
+        result = Persona.create_persona(
+            user=mock_user,
+            name="Test Persona",
+            tone="Casual",
+            style="Friendly",
+            instructions="Be friendly",
+            role="Assistant",
+            content_categories=["General"],
+            personal_details="Some details"
+        )
 
-        mock_create.assert_called_once_with(user=mock_user, name="Test Persona", tone="Casual", style="Friendly", instructions="Be friendly", personal_details="Some details")
+        mock_create.assert_called_once_with(
+            user=mock_user,
+            name="Test Persona",
+            tone="Casual",
+            style="Friendly",
+            instructions="Be friendly",
+            role="Assistant",
+            content_categories=["General"],
+            personal_details="Some details"
+        )
         mock_persona.refresh.assert_called_once()
         assert result == mock_refreshed_persona
 

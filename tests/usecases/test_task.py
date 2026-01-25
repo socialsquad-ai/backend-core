@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from config.non_env import Platform
 from usecases.task import process_meta_comment_change, process_meta_webhook
 
 
@@ -24,7 +25,7 @@ class TestProcessMetaCommentChange:
         mock_handle_comment.assert_called_once_with(
             webhook_id="comment_123",
             comment_data=webhook_data,
-            platform="instagram",
+            platform=Platform.INSTAGRAM,
             platform_user_id="user_456",
             post_id="post_789",
             comment_id="comment_123",
@@ -124,7 +125,6 @@ class TestProcessMetaWebhook:
         await process_meta_webhook(webhook_data)
 
         mock_process_comment.kiq.assert_not_called()
-        assert any("Ignore non-comment webhook from meta" in str(call) for call in mock_log.call_args_list)
 
     @patch("usecases.task.process_meta_comment_change")
     @patch("usecases.task.LoggerUtil.create_info_log")

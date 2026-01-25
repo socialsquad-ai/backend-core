@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastapi import Request
@@ -28,10 +28,10 @@ class TestRequireAuthentication:
         mock_request.state = Mock()
 
         mock_auth0_instance = MagicMock()
-        mock_auth0_instance.validate_token.return_value = {
+        mock_auth0_instance.validate_token = AsyncMock(return_value={
             "sub": "auth0|user123",
             "email": "test@example.com",
-        }
+        })
         mock_auth0_service.return_value = mock_auth0_instance
 
         mock_user = Mock()
@@ -150,9 +150,9 @@ class TestRequireAuthentication:
         mock_request.state = Mock()
 
         mock_auth0_instance = MagicMock()
-        mock_auth0_instance.validate_token.return_value = {
+        mock_auth0_instance.validate_token = AsyncMock(return_value={
             "sub": "auth0|user123",
-        }
+        })
         mock_auth0_service.return_value = mock_auth0_instance
 
         mock_user = Mock()
@@ -186,9 +186,9 @@ class TestRequireAuthentication:
         mock_request.state = Mock()
 
         mock_auth0_instance = MagicMock()
-        mock_auth0_instance.validate_token.return_value = {
+        mock_auth0_instance.validate_token = AsyncMock(return_value={
             "sub": "auth0|user123",
-        }
+        })
         mock_auth0_service.return_value = mock_auth0_instance
 
         mock_user = Mock()
@@ -227,7 +227,7 @@ class TestRequireAuthentication:
             "name": "Test User",
         }
         mock_auth0_instance = MagicMock()
-        mock_auth0_instance.validate_token.return_value = token_payload
+        mock_auth0_instance.validate_token = AsyncMock(return_value=token_payload)
         mock_auth0_service.return_value = mock_auth0_instance
 
         mock_user = Mock()
@@ -264,7 +264,7 @@ class TestRequireAuthentication:
 
         token_payload = {"sub": "auth0|specificuser", "email": "user@test.com"}
         mock_auth0_instance = MagicMock()
-        mock_auth0_instance.validate_token.return_value = token_payload
+        mock_auth0_instance.validate_token = AsyncMock(return_value=token_payload)
         mock_auth0_service.return_value = mock_auth0_instance
 
         mock_user = Mock()
