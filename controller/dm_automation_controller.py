@@ -11,13 +11,13 @@ from utils.exceptions import CustomBadRequest, ResourceNotFound, CustomUnauthori
 from utils.status_codes import RESPONSE_200, RESPONSE_201, RESPONSE_400, RESPONSE_403, RESPONSE_404
 
 dm_automation_router = APIRouter(
-    prefix=f"{API_VERSION_V1}",
+    prefix=f"{API_VERSION_V1}/dm-automations",
     tags=["DM Automations"],
 )
 
 
 @dm_automation_router.post(
-    "/integrations/{integration_uuid}/dm-automations",
+    "/integrations/{integration_uuid}",
     summary="Create DM Automation Rule for an Integration",
     description="Create a new DM automation rule for an integration, triggered by direct messages ('dm').",
     status_code=RESPONSE_201,
@@ -41,7 +41,7 @@ async def create_integration_dm_rule(request: Request, integration_uuid: str):
 
 
 @dm_automation_router.get(
-    "/integrations/{integration_uuid}/dm-automations",
+    "/integrations/{integration_uuid}",
     summary="Get DM Automation Rules for an Integration",
     description="Retrieve all active DM automation rules for a specific integration that are triggered by direct messages.",
 )
@@ -58,7 +58,7 @@ async def get_integration_dm_rules(request: Request, integration_uuid: str):
 
 
 @dm_automation_router.post(
-    "/posts/{post_id}/dm-automations",
+    "/posts/{post_id}",
     summary="Create DM Automation Rule for a Post",
     description="Create a new DM automation rule for a specific post, triggered by comments.",
     status_code=RESPONSE_201,
@@ -83,7 +83,7 @@ async def create_post_dm_rule(request: Request, post_id: str):
 
 
 @dm_automation_router.get(
-    "/posts/{post_id}/dm-automations",
+    "/posts/{post_id}",
     summary="Get DM Automation Rules for a Post",
     description="Retrieve all active DM automation rules for a specific post.",
 )
@@ -100,7 +100,7 @@ async def get_post_dm_rules(request: Request, post_id: str):
 
 
 @dm_automation_router.put(
-    "/dm-automations/{rule_uuid}",
+    "/{rule_uuid}",
     summary="Update a DM Automation Rule",
     description="Update the settings of an existing DM automation rule.",
 )
@@ -119,7 +119,7 @@ async def update_dm_rule(request: Request, rule_uuid: str):
 
 
 @dm_automation_router.delete(
-    "/dm-automations/{rule_uuid}",
+    "/{rule_uuid}",
     summary="Delete a DM Automation Rule",
     description="Delete an existing DM automation rule (soft delete).",
 )

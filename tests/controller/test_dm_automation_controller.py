@@ -28,7 +28,7 @@ class TestDmAutomationController:
     ):
         mock_get_rules.return_value = [{"id": 1, "trigger_type": "dm"}]
         response = client.get(
-            f"{API_VERSION_V1}/integrations/some-uuid/dm-automations",
+            f"{API_VERSION_V1}/dm-automations/integrations/some-uuid",
             headers={"Authorization": "Bearer dummy-token"},
         )
         assert response.status_code == 200
@@ -47,7 +47,7 @@ class TestDmAutomationController:
             "dm_response": "hi there",
         }
         response = client.post(
-            f"{API_VERSION_V1}/integrations/some-uuid/dm-automations",
+            f"{API_VERSION_V1}/dm-automations/integrations/some-uuid",
             json=payload,
             headers={"Authorization": "Bearer dummy-token"},
         )
@@ -66,7 +66,7 @@ class TestDmAutomationController:
             "dm_response": "hi there",
         }
         response = client.post(
-            f"{API_VERSION_V1}/posts/post123/dm-automations",
+            f"{API_VERSION_V1}/dm-automations/posts/post123",
             json=payload,
             headers={"Authorization": "Bearer dummy-token"},
         )
