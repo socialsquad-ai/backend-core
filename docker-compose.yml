@@ -61,11 +61,6 @@ services:
       META_CLIENT_SECRET: ${META_CLIENT_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-
-      # JWT Configuration
-      SSQ_SECRET_KEY: ${SSQ_SECRET_KEY}
-      SSQ_ALGORITHM: ${SSQ_ALGORITHM:-HS256}
-      SSQ_ACCESS_TOKEN_EXPIRE_MINUTES: ${SSQ_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
     depends_on:
       postgres:
         condition: service_healthy
@@ -115,11 +110,6 @@ services:
       META_CLIENT_SECRET: ${META_CLIENT_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-
-      # JWT Configuration
-      SSQ_SECRET_KEY: ${SSQ_SECRET_KEY}
-      SSQ_ALGORITHM: ${SSQ_ALGORITHM:-HS256}
-      SSQ_ACCESS_TOKEN_EXPIRE_MINUTES: ${SSQ_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
     depends_on:
       postgres:
         condition: service_healthy
