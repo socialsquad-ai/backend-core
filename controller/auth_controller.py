@@ -5,6 +5,7 @@ from controller.util import APIResponseFormat
 from decorators.common import validate_json_payload
 from logger.logging import LoggerUtil
 from utils.auth0_service import Auth0ManagementService
+from utils.contextvar import get_request_json_post_payload
 
 auth_router = APIRouter(
     prefix=f"{API_VERSION_V1}/auth",
@@ -44,7 +45,7 @@ async def resend_verification_email(request: Request):
     their email cannot log in yet.
     """
     try:
-        payload = request.state.payload
+        payload = get_request_json_post_payload()
         email = payload.get("email")
 
         LoggerUtil.create_info_log(f"Resend verification requested for email: {email}")
