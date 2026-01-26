@@ -24,9 +24,6 @@ else:
     load_dotenv(verbose=True)
 
 DEBUG = Environment.get_bool("DEBUG", "False")
-SSQ_SECRET_KEY = Environment.get_string("SSQ_SECRET_KEY")
-SSQ_ALGORITHM = Environment.get_string("SSQ_ALGORITHM")
-SSQ_ACCESS_TOKEN_EXPIRE_MINUTES = Environment.get_int("SSQ_ACCESS_TOKEN_EXPIRE_MINUTES")
 
 # Database configuration
 # Heroku provides DATABASE_URL, local dev uses individual vars
