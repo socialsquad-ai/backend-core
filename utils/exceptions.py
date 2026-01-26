@@ -7,3 +7,8 @@ class CustomBadRequest(Exception):
     def __init__(self, detail: str = "Bad Request", errors: dict = None):
         self.detail = detail
         self.errors = errors
+
+
+class ResourceNotFound(Exception):
+    def __init__(self, detail: str = "Resource not found"):
+        self.detail = detail

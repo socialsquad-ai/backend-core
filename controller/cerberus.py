@@ -156,3 +156,34 @@ class CustomRules:
             datetime.strptime(value, FILTER_DATE_FORMAT)
         except ValueError:
             error(field, "Invalid date string")
+
+
+dm_automation_rule_schema = {
+    "post_id": {"type": "string", "required": False, "nullable": True},
+    "trigger_type": {"type": "string", "required": True, "allowed": ["comment", "dm"]},
+    "match_type": {
+        "type": "string",
+        "required": False,
+        "nullable": True,
+        "allowed": ["EXACT_TEXT", "AI_INTENT"],
+    },
+    "trigger_text": {"type": "string", "required": True, "minlength": 1, "maxlength": 1000},
+    "dm_response": {"type": "string", "required": True, "minlength": 1, "maxlength": 1000},
+    "comment_reply": {"type": "string", "required": False, "nullable": True, "maxlength": 1000},
+    "is_active": {"type": "boolean", "required": False},
+}
+
+update_dm_automation_rule_schema = {
+    "post_id": {"type": "string", "required": False, "nullable": True},
+    "trigger_type": {"type": "string", "required": False, "allowed": ["comment", "dm"]},
+    "match_type": {
+        "type": "string",
+        "required": False,
+        "nullable": True,
+        "allowed": ["EXACT_TEXT", "AI_INTENT"],
+    },
+    "trigger_text": {"type": "string", "required": False, "minlength": 1, "maxlength": 1000},
+    "dm_response": {"type": "string", "required": False, "minlength": 1, "maxlength": 1000},
+    "comment_reply": {"type": "string", "required": False, "nullable": True, "maxlength": 1000},
+    "is_active": {"type": "boolean", "required": False},
+}

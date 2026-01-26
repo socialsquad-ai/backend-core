@@ -67,7 +67,8 @@ AUTH0_SPA_CLIENT_ID = Environment.get_string("AUTH0_SPA_CLIENT_ID", "")
 INTERNAL_AUTH_API_KEY = Environment.get_string("INTERNAL_AUTH_API_KEY")
 
 SSQ_BASE_URL = Environment.get_string("SSQ_BASE_URL")
-SSQ_CLIENT_URL = Environment.get_string("SSQ_CLIENT_URL")
+SSQ_CLIENT_WEB_URL = Environment.get_string("SSQ_CLIENT_WEB_URL", "https://instagram.socialsquad.ai/oauth/callback/instagram")
+SSQ_CLIENT_MOBILE_URL = Environment.get_string("SSQ_CLIENT_MOBILE_URL", "socialsquad://oauth/callback/instagram")
 
 # Social Media Integration Configuration
 META_CLIENT_ID = Environment.get_string("META_CLIENT_ID")

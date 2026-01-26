@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from controller.dm_automation_controller import dm_automation_router
 from controller.auth_controller import auth_router
 from controller.instagram_controller import instagram_router
 from controller.integration_controller import integrations_router
@@ -21,3 +22,4 @@ def init_routers(app: FastAPI):
     app.include_router(persona_router)
     app.include_router(webhook_router)
     app.include_router(instagram_router)
+    app.include_router(dm_automation_router)

@@ -99,4 +99,5 @@ class User(BaseModel):
             "role": self.role,
             "content_categories": self.content_categories,
             "status": self.status,
+            "is_onboarded": self.status == "active",
         }

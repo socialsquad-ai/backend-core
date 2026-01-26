@@ -1,8 +1,7 @@
-from unittest.mock import Mock, patch
-
+from unittest.mock import Mock, patch, AsyncMock
 import jwt
 import pytest
-import requests
+import httpx
 
 from utils.auth0_service import Auth0Service
 from utils.exceptions import CustomUnauthorized
@@ -29,81 +28,92 @@ class TestAuth0ServiceInit:
         assert service._jwks_url == "https://test.auth0.com/.well-known/jwks.json"
 
 
+@pytest.mark.asyncio
 class TestGetJwks:
     """Test cases for _get_jwks method"""
 
     @patch("utils.auth0_service.env")
-    @patch("utils.auth0_service.requests.get")
-    def test_get_jwks_fetches_and_caches(self, mock_get, mock_env):
+    @patch("utils.auth0_service.httpx.AsyncClient")
+    async def test_get_jwks_fetches_and_caches(self, mock_client_cls, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
         mock_env.AUTH0_ISSUER = "https://test.auth0.com/"
+
+        # Mock the context manager and the get method
+        mock_client = AsyncMock()
+        mock_client_cls.return_value.__aenter__.return_value = mock_client
 
         mock_response = Mock()
         mock_response.json.return_value = {"keys": [{"kid": "test-key-id"}]}
         mock_response.raise_for_status = Mock()
-        mock_get.return_value = mock_response
+        mock_client.get.return_value = mock_response
 
         service = Auth0Service()
 
         # Act
-        result1 = service._get_jwks()
-        result2 = service._get_jwks()
+        result1 = await service._get_jwks()
+        result2 = await service._get_jwks()
 
         # Assert
         assert result1 == {"keys": [{"kid": "test-key-id"}]}
         assert result2 == result1  # Should return cached value
-        mock_get.assert_called_once()  # Should only call API once
+        assert mock_client.get.call_count == 1  # Should only call API once
 
     @patch("utils.auth0_service.env")
-    @patch("utils.auth0_service.requests.get")
+    @patch("utils.auth0_service.httpx.AsyncClient")
     @patch("utils.auth0_service.LoggerUtil.create_error_log")
-    def test_get_jwks_handles_request_exception(self, mock_logger, mock_get, mock_env):
+    async def test_get_jwks_handles_request_exception(self, mock_logger, mock_client_cls, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
         mock_env.AUTH0_ISSUER = "https://test.auth0.com/"
 
-        mock_get.side_effect = requests.RequestException("Network error")
+        mock_client = AsyncMock()
+        mock_client_cls.return_value.__aenter__.return_value = mock_client
+        mock_client.get.side_effect = httpx.RequestError("Network error")
 
         service = Auth0Service()
 
         # Act & Assert
         with pytest.raises(CustomUnauthorized) as exc_info:
-            service._get_jwks()
+            await service._get_jwks()
 
         assert exc_info.value.detail == "Authentication service unavailable"
         mock_logger.assert_called_once()
 
     @patch("utils.auth0_service.env")
-    @patch("utils.auth0_service.requests.get")
-    def test_get_jwks_with_timeout(self, mock_get, mock_env):
+    @patch("utils.auth0_service.httpx.AsyncClient")
+    async def test_get_jwks_with_timeout(self, mock_client_cls, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
         mock_env.AUTH0_ISSUER = "https://test.auth0.com/"
 
+        mock_client = AsyncMock()
+        mock_client_cls.return_value.__aenter__.return_value = mock_client
+
         mock_response = Mock()
         mock_response.json.return_value = {"keys": []}
         mock_response.raise_for_status = Mock()
-        mock_get.return_value = mock_response
+        mock_client.get.return_value = mock_response
 
         service = Auth0Service()
 
         # Act
-        service._get_jwks()
+        await service._get_jwks()
 
         # Assert
-        mock_get.assert_called_once_with("https://test.auth0.com/.well-known/jwks.json", timeout=10)
+        mock_client.get.assert_called_once_with("https://test.auth0.com/.well-known/jwks.json", timeout=10)
 
 
+@pytest.mark.asyncio
 class TestGetSigningKey:
     """Test cases for _get_signing_key method"""
 
     @patch("utils.auth0_service.env")
     @patch("utils.auth0_service.jwt.get_unverified_header")
-    def test_get_signing_key_no_kid_in_header(self, mock_get_header, mock_env):
+    async def test_get_signing_key_no_kid_in_header(self, mock_get_header, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
@@ -114,14 +124,14 @@ class TestGetSigningKey:
         service = Auth0Service()
 
         # Act
-        result = service._get_signing_key("test-token")
+        result = await service._get_signing_key("test-token")
 
         # Assert
         assert result is None
 
     @patch("utils.auth0_service.env")
     @patch("utils.auth0_service.jwt.get_unverified_header")
-    def test_get_signing_key_with_invalid_token(self, mock_get_header, mock_env):
+    async def test_get_signing_key_with_invalid_token(self, mock_get_header, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
@@ -132,15 +142,14 @@ class TestGetSigningKey:
         service = Auth0Service()
 
         # Act
-        result = service._get_signing_key("invalid-token")
+        result = await service._get_signing_key("invalid-token")
 
         # Assert
         assert result is None
 
     @patch("utils.auth0_service.env")
     @patch("utils.auth0_service.jwt.get_unverified_header")
-    @patch("utils.auth0_service.requests.get")
-    def test_get_signing_key_key_not_found_in_jwks(self, mock_requests_get, mock_get_header, mock_env):
+    async def test_get_signing_key_key_not_found_in_jwks(self, mock_get_header, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
@@ -148,24 +157,20 @@ class TestGetSigningKey:
 
         mock_get_header.return_value = {"kid": "missing-key-id"}
 
-        mock_response = Mock()
-        mock_response.json.return_value = {"keys": [{"kid": "different-key-id"}]}
-        mock_response.raise_for_status = Mock()
-        mock_requests_get.return_value = mock_response
-
         service = Auth0Service()
+        # Mock _get_jwks directly instead of mocking http requests
+        service._get_jwks = AsyncMock(return_value={"keys": [{"kid": "different-key-id"}]})
 
         # Act
-        result = service._get_signing_key("test-token")
+        result = await service._get_signing_key("test-token")
 
         # Assert
         assert result is None
 
     @patch("utils.auth0_service.env")
     @patch("utils.auth0_service.jwt.get_unverified_header")
-    @patch("utils.auth0_service.requests.get")
     @patch("utils.auth0_service.jwt.utils.base64url_decode")
-    def test_get_signing_key_with_rsa_key(self, mock_base64_decode, mock_requests_get, mock_get_header, mock_env):
+    async def test_get_signing_key_with_rsa_key(self, mock_base64_decode, mock_get_header, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
@@ -173,23 +178,18 @@ class TestGetSigningKey:
 
         mock_get_header.return_value = {"kid": "test-key-id"}
 
-        # Simulate RSA key components (realistic 256-byte modulus for 2048-bit key)
-        # n: A realistic RSA modulus (must be larger than e)
-        n_bytes = b"\x00\xc0" + b"\xff" * 254  # ~2048 bits
-        # e: Standard RSA exponent (65537 = 0x010001)
+        # Simulate RSA key components
+        n_bytes = b"\x00\xc0" + b"\xff" * 254
         e_bytes = b"\x01\x00\x01"
-
         mock_base64_decode.side_effect = [n_bytes, e_bytes]
 
-        mock_response = Mock()
-        mock_response.json.return_value = {"keys": [{"kid": "test-key-id", "kty": "RSA", "n": "AQAB", "e": "AQAB"}]}
-        mock_response.raise_for_status = Mock()
-        mock_requests_get.return_value = mock_response
-
         service = Auth0Service()
+        service._get_jwks = AsyncMock(return_value={
+            "keys": [{"kid": "test-key-id", "kty": "RSA", "n": "AQAB", "e": "AQAB"}]
+        })
 
         # Act
-        result = service._get_signing_key("test-token")
+        result = await service._get_signing_key("test-token")
 
         # Assert
         assert result is not None
@@ -197,13 +197,14 @@ class TestGetSigningKey:
         assert "BEGIN PUBLIC KEY" in result
 
 
+@pytest.mark.asyncio
 class TestValidateToken:
     """Test cases for validate_token method"""
 
     @patch("utils.auth0_service.env")
     @patch("utils.auth0_service.LoggerUtil.create_info_log")
     @patch("utils.auth0_service.jwt.decode")
-    def test_validate_token_removes_bearer_prefix(self, mock_jwt_decode, mock_logger, mock_env):
+    async def test_validate_token_removes_bearer_prefix(self, mock_jwt_decode, mock_logger, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
@@ -212,10 +213,10 @@ class TestValidateToken:
         mock_jwt_decode.return_value = {"sub": "user123", "aud": "test-audience"}
 
         service = Auth0Service()
-        service._get_signing_key = Mock(return_value="test-key")
+        service._get_signing_key = AsyncMock(return_value="test-key")
 
         # Act
-        result = service.validate_token("Bearer test-token")
+        result = await service.validate_token("Bearer test-token")
 
         # Assert
         assert result == {"sub": "user123", "aud": "test-audience"}
@@ -223,25 +224,25 @@ class TestValidateToken:
 
     @patch("utils.auth0_service.env")
     @patch("utils.auth0_service.LoggerUtil.create_error_log")
-    def test_validate_token_raises_on_invalid_signature_key(self, mock_logger, mock_env):
+    async def test_validate_token_raises_on_invalid_signature_key(self, mock_logger, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
         mock_env.AUTH0_ISSUER = "https://test.auth0.com/"
 
         service = Auth0Service()
-        service._get_signing_key = Mock(return_value=None)
+        service._get_signing_key = AsyncMock(return_value=None)
 
         # Act & Assert
         with pytest.raises(CustomUnauthorized) as exc_info:
-            service.validate_token("test-token")
+            await service.validate_token("test-token")
 
         assert exc_info.value.detail == "Invalid token signature"
 
     @patch("utils.auth0_service.env")
     @patch("utils.auth0_service.LoggerUtil.create_error_log")
     @patch("utils.auth0_service.jwt.decode")
-    def test_validate_token_handles_expired_signature_error(self, mock_jwt_decode, mock_logger, mock_env):
+    async def test_validate_token_handles_expired_signature_error(self, mock_jwt_decode, mock_logger, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
@@ -250,11 +251,11 @@ class TestValidateToken:
         mock_jwt_decode.side_effect = jwt.ExpiredSignatureError("Token expired")
 
         service = Auth0Service()
-        service._get_signing_key = Mock(return_value="test-key")
+        service._get_signing_key = AsyncMock(return_value="test-key")
 
         # Act & Assert
         with pytest.raises(CustomUnauthorized) as exc_info:
-            service.validate_token("test-token")
+            await service.validate_token("test-token")
 
         assert exc_info.value.detail == "Token has expired"
         mock_logger.assert_called_once_with("Token has expired")
@@ -262,7 +263,7 @@ class TestValidateToken:
     @patch("utils.auth0_service.env")
     @patch("utils.auth0_service.LoggerUtil.create_error_log")
     @patch("utils.auth0_service.jwt.decode")
-    def test_validate_token_handles_invalid_audience_error(self, mock_jwt_decode, mock_logger, mock_env):
+    async def test_validate_token_handles_invalid_audience_error(self, mock_jwt_decode, mock_logger, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
@@ -271,11 +272,11 @@ class TestValidateToken:
         mock_jwt_decode.side_effect = jwt.InvalidAudienceError("Invalid audience")
 
         service = Auth0Service()
-        service._get_signing_key = Mock(return_value="test-key")
+        service._get_signing_key = AsyncMock(return_value="test-key")
 
         # Act & Assert
         with pytest.raises(CustomUnauthorized) as exc_info:
-            service.validate_token("test-token")
+            await service.validate_token("test-token")
 
         assert exc_info.value.detail == "Invalid token audience"
         mock_logger.assert_called_once_with("Invalid audience in token")
@@ -283,7 +284,7 @@ class TestValidateToken:
     @patch("utils.auth0_service.env")
     @patch("utils.auth0_service.LoggerUtil.create_error_log")
     @patch("utils.auth0_service.jwt.decode")
-    def test_validate_token_handles_invalid_issuer_error(self, mock_jwt_decode, mock_logger, mock_env):
+    async def test_validate_token_handles_invalid_issuer_error(self, mock_jwt_decode, mock_logger, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
@@ -292,11 +293,11 @@ class TestValidateToken:
         mock_jwt_decode.side_effect = jwt.InvalidIssuerError("Invalid issuer")
 
         service = Auth0Service()
-        service._get_signing_key = Mock(return_value="test-key")
+        service._get_signing_key = AsyncMock(return_value="test-key")
 
         # Act & Assert
         with pytest.raises(CustomUnauthorized) as exc_info:
-            service.validate_token("test-token")
+            await service.validate_token("test-token")
 
         assert exc_info.value.detail == "Invalid token issuer"
         mock_logger.assert_called_once_with("Invalid issuer in token")
@@ -304,7 +305,7 @@ class TestValidateToken:
     @patch("utils.auth0_service.env")
     @patch("utils.auth0_service.LoggerUtil.create_error_log")
     @patch("utils.auth0_service.jwt.decode")
-    def test_validate_token_handles_invalid_signature_error(self, mock_jwt_decode, mock_logger, mock_env):
+    async def test_validate_token_handles_invalid_signature_error(self, mock_jwt_decode, mock_logger, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
@@ -313,11 +314,11 @@ class TestValidateToken:
         mock_jwt_decode.side_effect = jwt.InvalidSignatureError("Invalid signature")
 
         service = Auth0Service()
-        service._get_signing_key = Mock(return_value="test-key")
+        service._get_signing_key = AsyncMock(return_value="test-key")
 
         # Act & Assert
         with pytest.raises(CustomUnauthorized) as exc_info:
-            service.validate_token("test-token")
+            await service.validate_token("test-token")
 
         assert exc_info.value.detail == "Invalid token signature"
         mock_logger.assert_called_once_with("Invalid token signature")
@@ -325,7 +326,7 @@ class TestValidateToken:
     @patch("utils.auth0_service.env")
     @patch("utils.auth0_service.LoggerUtil.create_error_log")
     @patch("utils.auth0_service.jwt.decode")
-    def test_validate_token_handles_invalid_token_error(self, mock_jwt_decode, mock_logger, mock_env):
+    async def test_validate_token_handles_invalid_token_error(self, mock_jwt_decode, mock_logger, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
@@ -334,18 +335,18 @@ class TestValidateToken:
         mock_jwt_decode.side_effect = jwt.InvalidTokenError("Invalid token")
 
         service = Auth0Service()
-        service._get_signing_key = Mock(return_value="test-key")
+        service._get_signing_key = AsyncMock(return_value="test-key")
 
         # Act & Assert
         with pytest.raises(CustomUnauthorized) as exc_info:
-            service.validate_token("test-token")
+            await service.validate_token("test-token")
 
         assert exc_info.value.detail == "Invalid token"
 
     @patch("utils.auth0_service.env")
     @patch("utils.auth0_service.LoggerUtil.create_error_log")
     @patch("utils.auth0_service.jwt.decode")
-    def test_validate_token_handles_generic_exception(self, mock_jwt_decode, mock_logger, mock_env):
+    async def test_validate_token_handles_generic_exception(self, mock_jwt_decode, mock_logger, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
@@ -354,18 +355,18 @@ class TestValidateToken:
         mock_jwt_decode.side_effect = Exception("Unexpected error")
 
         service = Auth0Service()
-        service._get_signing_key = Mock(return_value="test-key")
+        service._get_signing_key = AsyncMock(return_value="test-key")
 
         # Act & Assert
         with pytest.raises(CustomUnauthorized) as exc_info:
-            service.validate_token("test-token")
+            await service.validate_token("test-token")
 
         assert exc_info.value.detail == "Token validation failed"
 
     @patch("utils.auth0_service.env")
     @patch("utils.auth0_service.LoggerUtil.create_info_log")
     @patch("utils.auth0_service.jwt.decode")
-    def test_validate_token_success_with_complete_payload(self, mock_jwt_decode, mock_logger, mock_env):
+    async def test_validate_token_success_with_complete_payload(self, mock_jwt_decode, mock_logger, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
@@ -381,10 +382,10 @@ class TestValidateToken:
         mock_jwt_decode.return_value = payload
 
         service = Auth0Service()
-        service._get_signing_key = Mock(return_value="test-key")
+        service._get_signing_key = AsyncMock(return_value="test-key")
 
         # Act
-        result = service.validate_token("test-token")
+        result = await service.validate_token("test-token")
 
         # Assert
         assert result == payload
@@ -406,7 +407,7 @@ class TestValidateToken:
     @patch("utils.auth0_service.env")
     @patch("utils.auth0_service.LoggerUtil.create_info_log")
     @patch("utils.auth0_service.jwt.decode")
-    def test_validate_token_without_bearer_prefix(self, mock_jwt_decode, mock_logger, mock_env):
+    async def test_validate_token_without_bearer_prefix(self, mock_jwt_decode, mock_logger, mock_env):
         # Arrange
         mock_env.AUTH0_DOMAIN = "test.auth0.com"
         mock_env.AUTH0_AUDIENCE = "test-audience"
@@ -415,10 +416,10 @@ class TestValidateToken:
         mock_jwt_decode.return_value = {"sub": "user123"}
 
         service = Auth0Service()
-        service._get_signing_key = Mock(return_value="test-key")
+        service._get_signing_key = AsyncMock(return_value="test-key")
 
         # Act
-        result = service.validate_token("just-token-without-bearer")
+        result = await service.validate_token("just-token-without-bearer")
 
         # Assert
         assert result == {"sub": "user123"}

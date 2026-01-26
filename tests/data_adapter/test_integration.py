@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, Mock, patch
 
 from data_adapter.integration import Integration
@@ -134,7 +134,7 @@ class TestIntegrationGetDetails:
         integration = Integration()
         integration.uuid = "test-uuid-123"
         integration.platform = "instagram"
-        integration.expires_at = datetime.now() + timedelta(hours=1)  # Future date = active
+        integration.expires_at = datetime.now(timezone.utc) + timedelta(hours=1)  # Future date = active
         integration.token_type = "Bearer"
         integration.created_at = datetime(2024, 1, 1, 12, 0, 0)
 
@@ -150,7 +150,7 @@ class TestIntegrationGetDetails:
         integration = Integration()
         integration.uuid = "test-uuid-456"
         integration.platform = "youtube"
-        integration.expires_at = datetime.now() - timedelta(hours=1)  # Past date = inactive
+        integration.expires_at = datetime.now(timezone.utc) - timedelta(hours=1)  # Past date = inactive
         integration.token_type = "Bearer"
         integration.created_at = datetime(2024, 1, 1, 12, 0, 0)
 
@@ -165,7 +165,7 @@ class TestIntegrationGetDetails:
         integration = Integration()
         integration.uuid = "uuid-789"
         integration.platform = "instagram"
-        integration.expires_at = datetime.now() + timedelta(hours=1)
+        integration.expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
         integration.token_type = "Bearer"
         integration.created_at = datetime(2024, 1, 1)
 

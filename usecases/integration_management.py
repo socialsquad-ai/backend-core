@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import requests
+import json
 
 from config.env import (
     GOOGLE_CLIENT_ID,
@@ -8,9 +9,11 @@ from config.env import (
     META_CLIENT_ID,
     META_CLIENT_SECRET,
     SSQ_BASE_URL,
-    SSQ_CLIENT_URL,
+    SSQ_CLIENT_WEB_URL,
+    SSQ_CLIENT_MOBILE_URL,
 )
 from data_adapter.integration import Integration
+from data_adapter.user import User
 from logger.logging import LoggerUtil
 from utils.contextvar import get_context_user
 from utils.error_messages import (
@@ -24,7 +27,7 @@ class IntegrationManagement:
     # Platform configurations
     PLATFORMS = {
         "instagram": {
-            "auth_url": "https://www.instagram.com/oauth/authorize?force_reauth=true&client_id={client_id}&redirect_uri={redirect_uri}&scope=instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights&response_type=code",
+            "auth_url": "https://www.instagram.com/oauth/authorize?force_reauth=true&client_id={client_id}&redirect_uri={redirect_uri}&scope=instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights&response_type=code&state={state}",
             "token_url": "https://api.instagram.com/oauth/access_token",
             "client_id": META_CLIENT_ID,
             "client_secret": META_CLIENT_SECRET,
@@ -61,15 +64,20 @@ class IntegrationManagement:
         if not config:
             return UNSUPPORTED_PLATFORM, None, [UNSUPPORTED_PLATFORM]
 
-        redirect_uri = request.query_params.get("redirect_uri")
+        interface_type = request.query_params.get("interface_type", "web")
+        auth0_user_id = get_context_user().auth0_user_id
+        state = {"user_id": auth0_user_id, "interface_type": interface_type}
+
+        redirect_uri = f"{SSQ_BASE_URL}/v1/integrations/{platform}/oauth/callback"
+
         return (
             "",
-            config["auth_url"].format(client_id=config["client_id"], redirect_uri=redirect_uri),
+            config["auth_url"].format(client_id=config["client_id"], redirect_uri=redirect_uri, state=json.dumps(state)),
             None,
         )
 
     @staticmethod
-    def handle_oauth_callback(platform, code):
+    def handle_oauth_callback(platform, code, state):
         config = IntegrationManagement.PLATFORMS.get(platform)
         if not config:
             return UNSUPPORTED_PLATFORM, None, [UNSUPPORTED_PLATFORM]
@@ -86,17 +94,20 @@ class IntegrationManagement:
             response_data = response.json()
             LoggerUtil.create_info_log(f"token response: {response_data}")
 
-            # Save the tokens
-            user = get_context_user()
+            state = json.loads(state)
+            auth0_user_id = state["user_id"]
+            interface_type = state["interface_type"]
+
+            user = User.get_by_auth0_user_id(auth0_user_id)
             if not user:
                 return USER_NOT_FOUND, None, [USER_NOT_FOUND]
-            user = user[0]
 
             # For handling expired access tokens
             expires_in = response_data.get("expires_in", 3600)
             expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
 
             # Refresh token is not available for all platforms so adding a check here
+            refresh_token_expires_at = None
             refresh_token = response_data.get("refresh_token")
             if refresh_token:
                 refresh_token_expires_in = response_data.get("refresh_token_expires_in", 604800)
@@ -123,7 +134,9 @@ class IntegrationManagement:
 
             Integration.create_integration(**token_data)
             LoggerUtil.create_info_log("Integration created successfully")
-            return "", SSQ_CLIENT_URL, None
+            if interface_type == "web":
+                return "", SSQ_CLIENT_WEB_URL, None
+            return "", SSQ_CLIENT_MOBILE_URL, None
         except Exception as e:
             LoggerUtil.create_error_log(f"Error in handle_oauth_callback: {e}")
             return "Error in handle_oauth_callback", None, [str(e)]
