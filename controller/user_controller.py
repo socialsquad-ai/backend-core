@@ -54,6 +54,41 @@ async def create_user(request: Request):
     ).get_json()
 
 
+@user_router.post(
+    "/verify-email",
+    summary="Mark Email as Verified (Internal)",
+    description="Mark a user's email as verified after Auth0 email verification. This endpoint is for internal service-to-service calls only (Auth0 Action webhook) and requires the internal API key.",
+    responses={
+        200: {"description": "Email marked as verified successfully"},
+        401: {"description": "Invalid or missing internal API key"},
+        404: {"description": "User not found with the provided auth0_user_id"},
+    },
+    openapi_extra={"security": [{"InternalAPIKey": []}]},
+)
+@require_internal_authentication
+@validate_json_payload(
+    {
+        "auth0_user_id": {"type": "string", "required": True},
+    }
+)
+async def mark_email_verified(request: Request):
+    """Mark a user's email as verified from Auth0 post-email-verification hook."""
+    error_message, data, errors = UserManagement.mark_email_verified()
+    if errors:
+        return APIResponseFormat(
+            status_code=RESPONSE_404,
+            message=error_message,
+            data=data,
+            errors=errors,
+        ).get_json()
+    return APIResponseFormat(
+        status_code=200,
+        message=error_message,
+        data=data,
+        errors=errors,
+    ).get_json()
+
+
 @user_router.get(
     "/profile",
     summary="Get Current User Profile",

@@ -71,6 +71,23 @@ class User(BaseModel):
     def get_all_users(cls):
         return cls.select_query().limit(100)
 
+    @classmethod
+    def mark_email_verified(cls, auth0_user_id: str) -> bool:
+        """
+        Mark a user's email as verified by their Auth0 user ID.
+        Also updates status from 'verification_pending' to 'onboarding' if applicable.
+        Returns True if user was found and updated, False otherwise.
+        """
+        user = cls.get_by_auth0_user_id(auth0_user_id)
+        if not user:
+            return False
+
+        user.email_verified = True
+        if user.status == "verification_pending":
+            user.status = "onboarding"
+        user.save()
+        return True
+
     def get_details(self):
         return {
             "name": self.name,
