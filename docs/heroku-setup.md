@@ -125,9 +125,6 @@ Set environment variables on all 4 apps. API and Worker apps in the same environ
 heroku config:set -a ssq-api-staging \
   APP_ENVIRONMENT=staging \
   DEBUG=False \
-  SSQ_SECRET_KEY="your-secret-key" \
-  SSQ_ALGORITHM=HS256 \
-  SSQ_ACCESS_TOKEN_EXPIRE_MINUTES=30 \
   SSQ_BASE_URL="https://ssq-api-staging.herokuapp.com" \
   SSQ_CLIENT_URL="https://your-frontend-staging.com" \
   CORS_ORIGINS="https://your-frontend-staging.com" \
@@ -144,9 +141,6 @@ heroku config:set -a ssq-api-staging \
 heroku config:set -a ssq-worker-staging \
   APP_ENVIRONMENT=staging \
   DEBUG=False \
-  SSQ_SECRET_KEY="your-secret-key" \
-  SSQ_ALGORITHM=HS256 \
-  SSQ_ACCESS_TOKEN_EXPIRE_MINUTES=30 \
   SSQ_BASE_URL="https://ssq-api-staging.herokuapp.com" \
   SSQ_CLIENT_URL="https://your-frontend-staging.com" \
   AUTH0_DOMAIN="your-tenant.auth0.com" \
@@ -162,9 +156,6 @@ heroku config:set -a ssq-worker-staging \
 heroku config:set -a ssq-api-production \
   APP_ENVIRONMENT=production \
   DEBUG=False \
-  SSQ_SECRET_KEY="your-production-secret-key" \
-  SSQ_ALGORITHM=HS256 \
-  SSQ_ACCESS_TOKEN_EXPIRE_MINUTES=30 \
   SSQ_BASE_URL="https://ssq-api-production.herokuapp.com" \
   SSQ_CLIENT_URL="https://your-frontend.com" \
   CORS_ORIGINS="https://your-frontend.com" \
@@ -181,9 +172,6 @@ heroku config:set -a ssq-api-production \
 heroku config:set -a ssq-worker-production \
   APP_ENVIRONMENT=production \
   DEBUG=False \
-  SSQ_SECRET_KEY="your-production-secret-key" \
-  SSQ_ALGORITHM=HS256 \
-  SSQ_ACCESS_TOKEN_EXPIRE_MINUTES=30 \
   SSQ_BASE_URL="https://ssq-api-production.herokuapp.com" \
   SSQ_CLIENT_URL="https://your-frontend.com" \
   AUTH0_DOMAIN="your-tenant.auth0.com" \
@@ -855,7 +843,7 @@ heroku apps:destroy -a ssq-api-staging --confirm ssq-api-staging
 heroku config -a ssq-api-production
 
 # Get single var
-heroku config:get SSQ_SECRET_KEY -a ssq-api-production
+heroku config:get AUTH0_DOMAIN -a ssq-api-production
 
 # Set vars
 heroku config:set KEY=value -a ssq-api-production
@@ -1012,9 +1000,6 @@ heroku ps:type web=standard-2x -a ssq-api-production
 | `DATABASE_URL` | Auto | Set automatically by Heroku Postgres addon |
 | `APP_ENVIRONMENT` | Yes | `staging` or `production` |
 | `DEBUG` | Yes | `False` for production |
-| `SSQ_SECRET_KEY` | Yes | JWT signing key (use strong random string) |
-| `SSQ_ALGORITHM` | Yes | JWT algorithm (default: `HS256`) |
-| `SSQ_ACCESS_TOKEN_EXPIRE_MINUTES` | Yes | Token expiry in minutes |
 | `SSQ_BASE_URL` | Yes | This API's public URL |
 | `SSQ_CLIENT_URL` | Yes | Frontend URL (for redirects) |
 | `CORS_ORIGINS` | Yes | Comma-separated allowed origins |

@@ -24,9 +24,6 @@ else:
     load_dotenv(verbose=True)
 
 DEBUG = Environment.get_bool("DEBUG", "False")
-SSQ_SECRET_KEY = Environment.get_string("SSQ_SECRET_KEY")
-SSQ_ALGORITHM = Environment.get_string("SSQ_ALGORITHM")
-SSQ_ACCESS_TOKEN_EXPIRE_MINUTES = Environment.get_int("SSQ_ACCESS_TOKEN_EXPIRE_MINUTES")
 
 # Database configuration
 # Heroku provides DATABASE_URL, local dev uses individual vars
@@ -58,6 +55,13 @@ APP_ENVIRONMENT = Environment.get_string("APP_ENVIRONMENT")
 AUTH0_DOMAIN = Environment.get_string("AUTH0_DOMAIN")
 AUTH0_AUDIENCE = Environment.get_string("AUTH0_AUDIENCE")
 AUTH0_ISSUER = Environment.get_string("AUTH0_ISSUER", f"https://{AUTH0_DOMAIN}/")
+
+# Auth0 Management API (for resending verification emails, user management)
+# Create a Machine-to-Machine application in Auth0 Dashboard
+AUTH0_MGMT_CLIENT_ID = Environment.get_string("AUTH0_MGMT_CLIENT_ID", "")
+AUTH0_MGMT_CLIENT_SECRET = Environment.get_string("AUTH0_MGMT_CLIENT_SECRET", "")
+# This is typically your SPA client ID (for verification email redirects)
+AUTH0_SPA_CLIENT_ID = Environment.get_string("AUTH0_SPA_CLIENT_ID", "")
 
 # Internal API Key (for webhooks, callbacks, internal services)
 INTERNAL_AUTH_API_KEY = Environment.get_string("INTERNAL_AUTH_API_KEY")
