@@ -5,7 +5,143 @@ import jwt
 
 from config import env
 from logger.logging import LoggerUtil
-from utils.exceptions import CustomUnauthorized
+from utils.exceptions import CustomBadRequest, CustomUnauthorized
+
+
+class Auth0ManagementService:
+    """Service for Auth0 Management API operations (resend verification, user management)"""
+
+    def __init__(self):
+        self.domain = env.AUTH0_DOMAIN
+        self.mgmt_client_id = env.AUTH0_MGMT_CLIENT_ID
+        self.mgmt_client_secret = env.AUTH0_MGMT_CLIENT_SECRET
+        self.spa_client_id = env.AUTH0_SPA_CLIENT_ID
+        self._mgmt_token = None
+        self._mgmt_token_expires_at = 0
+
+    async def _get_management_token(self) -> str:
+        """Get a Management API access token using client credentials"""
+        import time
+
+        # Check if we have a valid cached token
+        if self._mgmt_token and time.time() < self._mgmt_token_expires_at - 60:
+            return self._mgmt_token
+
+        if not self.mgmt_client_id or not self.mgmt_client_secret:
+            LoggerUtil.create_error_log("Auth0 Management API credentials not configured")
+            raise CustomBadRequest(detail="Email verification service not configured")
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"https://{self.domain}/oauth/token",
+                    json={
+                        "client_id": self.mgmt_client_id,
+                        "client_secret": self.mgmt_client_secret,
+                        "audience": f"https://{self.domain}/api/v2/",
+                        "grant_type": "client_credentials",
+                    },
+                    timeout=10,
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                self._mgmt_token = data["access_token"]
+                self._mgmt_token_expires_at = time.time() + data.get("expires_in", 86400)
+
+                LoggerUtil.create_info_log("Auth0 Management API token obtained successfully")
+                return self._mgmt_token
+
+        except httpx.RequestError as e:
+            LoggerUtil.create_error_log(f"Failed to get Auth0 Management token: {e}")
+            raise CustomBadRequest(detail="Failed to connect to authentication service")
+        except httpx.HTTPStatusError as e:
+            LoggerUtil.create_error_log(f"Auth0 Management token request failed: {e.response.text}")
+            raise CustomBadRequest(detail="Authentication service configuration error")
+
+    async def resend_verification_email(self, email: str) -> Dict:
+        """
+        Resend verification email to a user.
+
+        Only sends if:
+        1. User exists in our database
+        2. User's email_verified is False in our database
+
+        Returns:
+            Dict with 'success' boolean and 'message' string
+        """
+        from data_adapter.user import User
+
+        # First, check if user exists in OUR database
+        db_users = User.get_by_email(email)
+        if not db_users or len(db_users) == 0:
+            LoggerUtil.create_info_log(f"Resend verification requested for non-existent email in DB: {email}")
+            # Return generic message to prevent email enumeration
+            return {
+                "success": True,
+                "message": "If an account exists with this email, a verification link will be sent.",
+            }
+
+        db_user = db_users[0]
+
+        # Check if already verified in our database
+        if db_user.email_verified:
+            LoggerUtil.create_info_log(f"Resend verification requested for already verified email in DB: {email}")
+            return {
+                "success": False,
+                "message": "This email is already verified. You can log in directly.",
+            }
+
+        # User exists in our DB and is not verified - trigger verification email
+        auth0_user_id = db_user.auth0_user_id
+
+        # Trigger verification email via Auth0 Management API
+        token = await self._get_management_token()
+
+        try:
+            async with httpx.AsyncClient() as client:
+                # Use the verification email job endpoint
+                payload = {"user_id": auth0_user_id}
+
+                # Add client_id if configured (for redirect after verification)
+                if self.spa_client_id:
+                    payload["client_id"] = self.spa_client_id
+
+                response = await client.post(
+                    f"https://{self.domain}/api/v2/jobs/verification-email",
+                    json=payload,
+                    headers={"Authorization": f"Bearer {token}"},
+                    timeout=10,
+                )
+                response.raise_for_status()
+
+                LoggerUtil.create_info_log(f"Verification email sent successfully to: {email}")
+                return {
+                    "success": True,
+                    "message": "Verification email sent! Please check your inbox and spam folder.",
+                }
+
+        except httpx.HTTPStatusError as e:
+            error_detail = e.response.json() if e.response.content else {}
+            LoggerUtil.create_error_log(f"Failed to send verification email: {error_detail}")
+
+            # Handle rate limiting
+            if e.response.status_code == 429:
+                return {
+                    "success": False,
+                    "message": "Too many requests. Please wait a few minutes before trying again.",
+                }
+
+            return {
+                "success": False,
+                "message": "Failed to send verification email. Please try again later.",
+            }
+        except httpx.RequestError as e:
+            LoggerUtil.create_error_log(f"Request error sending verification email: {e}")
+            return {
+                "success": False,
+                "message": "Service temporarily unavailable. Please try again later.",
+            }
 
 
 class Auth0Service:
