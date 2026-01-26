@@ -51,4 +51,4 @@ GEMINI_TOP_P = 0.5
 GEMINI_TIMEOUT = 15
 
 # Instagram API
-INSTAGRAM_GRAPH_API_BASE_URL = "https://graph.facebook.com/v20.0"
+INSTAGRAM_GRAPH_API_BASE_URL = "https://graph.instagram.com/v24.0"
