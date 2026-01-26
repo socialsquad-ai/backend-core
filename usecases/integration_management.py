@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import requests
+import json
 
 from config.env import (
     GOOGLE_CLIENT_ID,
@@ -12,6 +13,7 @@ from config.env import (
     SSQ_CLIENT_MOBILE_URL,
 )
 from data_adapter.integration import Integration
+from data_adapter.user import User
 from logger.logging import LoggerUtil
 from utils.contextvar import get_context_user
 from utils.error_messages import (
@@ -63,16 +65,19 @@ class IntegrationManagement:
             return UNSUPPORTED_PLATFORM, None, [UNSUPPORTED_PLATFORM]
 
         interface_type = request.query_params.get("interface_type", "web")
+        auth0_user_id = get_context_user().auth0_user_id
+        state = {"user_id": auth0_user_id, "interface_type": interface_type}
+
         redirect_uri = f"{SSQ_BASE_URL}/v1/integrations/{platform}/oauth/callback"
 
         return (
             "",
-            config["auth_url"].format(client_id=config["client_id"], redirect_uri=redirect_uri, state=interface_type),
+            config["auth_url"].format(client_id=config["client_id"], redirect_uri=redirect_uri, state=json.dumps(state)),
             None,
         )
 
     @staticmethod
-    def handle_oauth_callback(platform, code, interface_type):
+    def handle_oauth_callback(platform, code, state):
         config = IntegrationManagement.PLATFORMS.get(platform)
         if not config:
             return UNSUPPORTED_PLATFORM, None, [UNSUPPORTED_PLATFORM]
@@ -89,17 +94,20 @@ class IntegrationManagement:
             response_data = response.json()
             LoggerUtil.create_info_log(f"token response: {response_data}")
 
-            # Save the tokens
-            user = get_context_user()
+            state = json.loads(state)
+            auth0_user_id = state["user_id"]
+            interface_type = state["interface_type"]
+
+            user = User.get_by_auth0_user_id(auth0_user_id)
             if not user:
                 return USER_NOT_FOUND, None, [USER_NOT_FOUND]
-            user = user[0]
 
             # For handling expired access tokens
             expires_in = response_data.get("expires_in", 3600)
             expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
 
             # Refresh token is not available for all platforms so adding a check here
+            refresh_token_expires_at = None
             refresh_token = response_data.get("refresh_token")
             if refresh_token:
                 refresh_token_expires_in = response_data.get("refresh_token_expires_in", 604800)
