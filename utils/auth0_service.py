@@ -59,48 +59,20 @@ class Auth0ManagementService:
             LoggerUtil.create_error_log(f"Auth0 Management token request failed: {e.response.text}")
             raise CustomBadRequest(detail="Authentication service configuration error")
 
-    async def resend_verification_email(self, email: str) -> Dict:
+    async def send_verification_email(self, auth0_user_id: str) -> Dict:
         """
-        Resend verification email to a user.
+        Send verification email to a user via Auth0 Management API.
 
-        Only sends if:
-        1. User exists in our database
-        2. User's email_verified is False in our database
+        Args:
+            auth0_user_id: The Auth0 user ID (e.g., "auth0|123456")
 
         Returns:
             Dict with 'success' boolean and 'message' string
         """
-        from data_adapter.user import User
-
-        # First, check if user exists in OUR database
-        db_users = User.get_by_email(email)
-        if not db_users or len(db_users) == 0:
-            LoggerUtil.create_info_log(f"Resend verification requested for non-existent email in DB: {email}")
-            # Return generic message to prevent email enumeration
-            return {
-                "success": True,
-                "message": "If an account exists with this email, a verification link will be sent.",
-            }
-
-        db_user = db_users[0]
-
-        # Check if already verified in our database
-        if db_user.email_verified:
-            LoggerUtil.create_info_log(f"Resend verification requested for already verified email in DB: {email}")
-            return {
-                "success": False,
-                "message": "This email is already verified. You can log in directly.",
-            }
-
-        # User exists in our DB and is not verified - trigger verification email
-        auth0_user_id = db_user.auth0_user_id
-
-        # Trigger verification email via Auth0 Management API
         token = await self._get_management_token()
 
         try:
             async with httpx.AsyncClient() as client:
-                # Use the verification email job endpoint
                 payload = {"user_id": auth0_user_id}
 
                 # Add client_id if configured (for redirect after verification)
@@ -115,17 +87,16 @@ class Auth0ManagementService:
                 )
                 response.raise_for_status()
 
-                LoggerUtil.create_info_log(f"Verification email sent successfully to: {email}")
+                LoggerUtil.create_info_log(f"Verification email sent successfully for user: {auth0_user_id}")
                 return {
                     "success": True,
-                    "message": "Verification email sent! Please check your inbox and spam folder.",
+                    "message": "Verification email sent successfully.",
                 }
 
         except httpx.HTTPStatusError as e:
             error_detail = e.response.json() if e.response.content else {}
             LoggerUtil.create_error_log(f"Failed to send verification email: {error_detail}")
 
-            # Handle rate limiting
             if e.response.status_code == 429:
                 return {
                     "success": False,
