@@ -110,9 +110,9 @@ async def get_oauth_url(request: Request, platform: str):
         500: {"description": "Failed to complete OAuth flow"},
     },
 )
-async def handle_oauth_callback(request: Request, platform: str, code: str):
+async def handle_oauth_callback(request: Request, platform: str, code: str, state: str):
     """Handle OAuth callback and exchange code for tokens."""
-    error_message, data, errors = IntegrationManagement.handle_oauth_callback(platform, code)
+    error_message, data, errors = IntegrationManagement.handle_oauth_callback(platform, code, interface_type)
     status_code = 200 if not error_message else 500
     if status_code == 200:
         return RedirectResponse(url=data)

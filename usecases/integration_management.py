@@ -8,7 +8,8 @@ from config.env import (
     META_CLIENT_ID,
     META_CLIENT_SECRET,
     SSQ_BASE_URL,
-    SSQ_CLIENT_URL,
+    SSQ_CLIENT_WEB_URL,
+    SSQ_CLIENT_MOBILE_URL,
 )
 from data_adapter.integration import Integration
 from logger.logging import LoggerUtil
@@ -24,7 +25,7 @@ class IntegrationManagement:
     # Platform configurations
     PLATFORMS = {
         "instagram": {
-            "auth_url": "https://www.instagram.com/oauth/authorize?force_reauth=true&client_id={client_id}&redirect_uri={redirect_uri}&scope=instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights&response_type=code",
+            "auth_url": "https://www.instagram.com/oauth/authorize?force_reauth=true&client_id={client_id}&redirect_uri={redirect_uri}&scope=instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights&response_type=code&state={state}",
             "token_url": "https://api.instagram.com/oauth/access_token",
             "client_id": META_CLIENT_ID,
             "client_secret": META_CLIENT_SECRET,
@@ -40,11 +41,6 @@ class IntegrationManagement:
     }
 
     PLATFORMS_USING_REFRESH_TOKEN = ["youtube"]
-
-    REDIRECT_URIS = {
-        "web": "https://instagram.socialsquad.ai/oauth/callback/instagram",
-        "mobile": "socialsquad://oauth/callback/instagram",
-    }
 
     @staticmethod
     def get_all_integrations():
@@ -67,16 +63,16 @@ class IntegrationManagement:
             return UNSUPPORTED_PLATFORM, None, [UNSUPPORTED_PLATFORM]
 
         interface_type = request.query_params.get("interface_type", "web")
-        redirect_uri = IntegrationManagement.REDIRECT_URIS[interface_type]
+        redirect_uri = f"{SSQ_BASE_URL}/v1/integrations/{platform}/oauth/callback"
 
         return (
             "",
-            config["auth_url"].format(client_id=config["client_id"], redirect_uri=redirect_uri),
+            config["auth_url"].format(client_id=config["client_id"], redirect_uri=redirect_uri, state=interface_type),
             None,
         )
 
     @staticmethod
-    def handle_oauth_callback(platform, code):
+    def handle_oauth_callback(platform, code, interface_type):
         config = IntegrationManagement.PLATFORMS.get(platform)
         if not config:
             return UNSUPPORTED_PLATFORM, None, [UNSUPPORTED_PLATFORM]
@@ -130,7 +126,9 @@ class IntegrationManagement:
 
             Integration.create_integration(**token_data)
             LoggerUtil.create_info_log("Integration created successfully")
-            return "", SSQ_CLIENT_URL, None
+            if interface_type == "web":
+                return "", SSQ_CLIENT_WEB_URL, None
+            return "", SSQ_CLIENT_MOBILE_URL, None
         except Exception as e:
             LoggerUtil.create_error_log(f"Error in handle_oauth_callback: {e}")
             return "Error in handle_oauth_callback", None, [str(e)]
