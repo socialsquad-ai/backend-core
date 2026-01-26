@@ -1,9 +1,8 @@
-from fastapi import APIRouter
-from fastapi.requests import Request
-from pydantic import BaseModel, EmailStr
+from fastapi import APIRouter, Request
 
 from config.non_env import API_VERSION_V1
 from controller.util import APIResponseFormat
+from decorators.common import validate_json_payload
 from logger.logging import LoggerUtil
 from utils.auth0_service import Auth0ManagementService
 
@@ -11,12 +10,6 @@ auth_router = APIRouter(
     prefix=f"{API_VERSION_V1}/auth",
     tags=["Authentication"],
 )
-
-
-class ResendVerificationRequest(BaseModel):
-    """Request body for resending verification email"""
-
-    email: EmailStr
 
 
 @auth_router.post(
@@ -38,7 +31,12 @@ class ResendVerificationRequest(BaseModel):
         500: {"description": "Internal server error"},
     },
 )
-async def resend_verification_email(request: Request, body: ResendVerificationRequest):
+@validate_json_payload(
+    {
+        "email": {"type": "string", "required": True},
+    }
+)
+async def resend_verification_email(request: Request):
     """
     Resend verification email to a user.
 
@@ -46,13 +44,13 @@ async def resend_verification_email(request: Request, body: ResendVerificationRe
     their email cannot log in yet.
     """
     try:
-        LoggerUtil.create_info_log(f"Resend verification requested for email: {body.email}")
+        payload = request.state.payload
+        email = payload.get("email")
 
-        # Initialize the management service
+        LoggerUtil.create_info_log(f"Resend verification requested for email: {email}")
+
         mgmt_service = Auth0ManagementService()
-
-        # Attempt to resend verification email
-        result = await mgmt_service.resend_verification_email(body.email)
+        result = await mgmt_service.resend_verification_email(email)
 
         status_code = 200 if result["success"] else 400
 
