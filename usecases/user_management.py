@@ -69,3 +69,20 @@ class UserManagement:
         if not users:
             return "No users found", None, None
         return "", {"users": [user.get_details() for user in users]}, None
+
+    @staticmethod
+    @ssq_db.atomic()
+    def mark_email_verified():
+        """Mark a user's email as verified using auth0_user_id from payload."""
+        payload = get_request_json_post_payload()
+        auth0_user_id = payload.get("auth0_user_id")
+
+        if not auth0_user_id:
+            return "auth0_user_id is required", None, ["Missing auth0_user_id"]
+
+        success = User.mark_email_verified(auth0_user_id)
+
+        if not success:
+            return RESOURCE_NOT_FOUND, None, ["User not found"]
+
+        return "Email marked as verified", {"success": True}, None
