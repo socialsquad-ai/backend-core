@@ -67,7 +67,7 @@ class IntegrationManagement:
             return UNSUPPORTED_PLATFORM, None, [UNSUPPORTED_PLATFORM]
 
         interface_type = request.query_params.get("interface_type", "web")
-        redirect_uri = REDIRECT_URIS[interface_type]
+        redirect_uri = IntegrationManagement.REDIRECT_URIS[interface_type]
 
         return (
             "",
