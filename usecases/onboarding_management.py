@@ -38,6 +38,8 @@ class OnboardingManagement:
                 style=style,
                 instructions=instructions,
                 personal_details=personal_details,
+                content_categories=content_categories,
+                role=role,
             )
 
             # Check if persona creation failed

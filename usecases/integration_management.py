@@ -41,6 +41,11 @@ class IntegrationManagement:
 
     PLATFORMS_USING_REFRESH_TOKEN = ["youtube"]
 
+    REDIRECT_URIS = {
+        "web": "https://instagram.socialsquad.ai/oauth/callback/instagram",
+        "mobile": "socialsquad://oauth/callback/instagram",
+    }
+
     @staticmethod
     def get_all_integrations():
         user = get_context_user()
@@ -61,7 +66,9 @@ class IntegrationManagement:
         if not config:
             return UNSUPPORTED_PLATFORM, None, [UNSUPPORTED_PLATFORM]
 
-        redirect_uri = request.query_params.get("redirect_uri")
+        interface_type = request.query_params.get("interface_type", "web")
+        redirect_uri = REDIRECT_URIS[interface_type]
+
         return (
             "",
             config["auth_url"].format(client_id=config["client_id"], redirect_uri=redirect_uri),
