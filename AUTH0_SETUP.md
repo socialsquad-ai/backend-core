@@ -6,31 +6,65 @@ This guide covers the complete Auth0 integration including user registration, em
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              AUTH0 FLOW                                      │
+│                         EMAIL/PASSWORD SIGNUP FLOW                          │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│   User Signs Up ──► Auth0 ──► Post User Registration Action ──► Backend API │
-│        │                              │                              │       │
-│        │                              │                     POST /v1/users/  │
+│   User Signs Up ──► Auth0 ──► Post User Registration ──► POST /v1/users/    │
 │        │                              │                    (creates user)    │
-│        │                              ▼                              │       │
-│        │                    Sends verification email                 │       │
-│        │                              │                              │       │
-│        ▼                              ▼                              │       │
-│   User Verifies Email ──► User Logs In ──► Post Login Action ──► Backend API│
-│                                              │                       │       │
-│                                              │              POST /v1/users/  │
-│                                              │               verify-email    │
-│                                              │           (marks verified)    │
-│                                              ▼                       │       │
-│                                    User gets JWT token               │       │
-│                                              │                       │       │
-│                                              ▼                       │       │
-│                                    Frontend calls Backend APIs       │       │
-│                                    with Bearer token                 │       │
+│        │                              ▼                                      │
+│        │                    Sends verification email                         │
+│        │                              │                                      │
+│        ▼                              ▼                                      │
+│   User Verifies ──► Logs In ──► Post Login ──► POST /v1/users/verify-email  │
+│                                      │                                       │
+│                                      ▼                                       │
+│                            User gets JWT token                               │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         SOCIAL (GOOGLE/FB) SIGNUP FLOW                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   User Signs Up ──► Auth0 ──► (Post User Registration SKIPPED!)             │
+│        │                                                                     │
+│        ▼                                                                     │
+│   First Login ──► Post Login ──► Detects no backend_user_created flag       │
+│                        │                    │                                │
+│                        │                    ▼                                │
+│                        │         POST /v1/users/ (creates user)              │
+│                        │                    │                                │
+│                        │                    ▼                                │
+│                        │         Sets backend_user_created = true            │
+│                        │         Sets email_verification_notify_count = 1    │
+│                        ▼                                                     │
+│              User gets JWT token                                             │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+## How It Works
+
+### Post User Registration Action (Email/Password Only)
+- **Trigger**: When a user signs up with email/password
+- **Purpose**: Simply calls `POST /v1/users/` to create the user in our database
+- **Note**: This action does NOT fire for Google/social signups
+
+### Post Login Action (All Users)
+- **Trigger**: Every time a user logs in
+- **Purpose**: Handles two scenarios based on `app_metadata.backend_user_created` flag
+
+| Scenario | Condition | Action |
+|----------|-----------|--------|
+| First-time Google/social user | `backend_user_created` flag is missing | Create user via `POST /v1/users/`, then set flag to `true` |
+| Returning user with verified email | `backend_user_created = true` AND `email_verified = true` | Call `POST /v1/users/verify-email` (up to 3 times) |
+
+### App Metadata Flags
+
+| Flag | Purpose |
+|------|---------|
+| `backend_user_created` | Tracks if user exists in our backend (set to `true` after successful creation) |
+| `email_verification_notify_count` | Tracks how many times we've synced verification status (stops at 3) |
 
 ## Environment Variables
 
@@ -105,7 +139,7 @@ INTERNAL_AUTH_API_KEY=your-secure-random-key
 
 ### Step 5: Create Auth0 Action - Post User Registration
 
-This action calls your backend to create a user when someone signs up.
+**Purpose**: Create user in backend when someone signs up with email/password.
 
 1. Go to **Actions** → **Library** → **Build Custom**
 2. Name: `Post Registration - Create User in Backend`
@@ -120,8 +154,8 @@ This action calls your backend to create a user when someone signs up.
 
 ```javascript
 /**
- * Handler that will be called during the execution of a PostUserRegistration flow.
- * Creates user in SocialSquad backend after Auth0 registration.
+ * Post User Registration Action
+ * Simply calls the backend API to create a user in our database.
  */
 exports.onExecutePostUserRegistration = async (event, api) => {
   const axios = require("axios");
@@ -145,7 +179,7 @@ exports.onExecutePostUserRegistration = async (event, api) => {
   };
 
   try {
-    await axios.post("https://api.socialsquad.ai/v1/users/", userInfo, {
+    await axios.post("https://staging-api.socialsquad.ai/v1/users/", userInfo, {
       headers: {
         Authorization: `Bearer ${event.secrets.backend_api_token}`,
         "Content-Type": "application/json"
@@ -162,12 +196,16 @@ exports.onExecutePostUserRegistration = async (event, api) => {
 8. Go to **Actions** → **Flows** → **Post User Registration**
 9. Drag your action into the flow and **Apply**
 
-### Step 6: Create Auth0 Action - Post Login (Email Verification Sync)
+### Step 6: Create Auth0 Action - Post Login
 
-This action syncs the email verification status to your backend when a user logs in.
+**Purpose**:
+1. For Google/social users (first login): Create user in backend (since Post Registration is skipped)
+2. For all users: Sync email verification status to backend
+
+**Detection**: Uses `app_metadata.backend_user_created` flag to know if user already exists in backend.
 
 1. Go to **Actions** → **Library** → **Build Custom**
-2. Name: `Post Login - Sync Email Verification`
+2. Name: `Post Login - Create User and Sync Verification`
 3. Trigger: **Login / Post Login**
 4. Add **Secret**:
    - Key: `backend_api_token`
@@ -179,19 +217,79 @@ This action syncs the email verification status to your backend when a user logs
 
 ```javascript
 /**
- * Handler that will be called during the execution of a PostLogin flow.
- * Syncs email verification status to backend (retries up to 3 times).
+ * Post Login Action
+ *
+ * 1. If backend_user_created flag is missing → Create user (handles Google/social signups)
+ * 2. If user exists and email is verified → Sync verification status (up to 3 times)
  */
 exports.onExecutePostLogin = async (event, api) => {
   const axios = require("axios");
 
-  // Only process if email is verified
-  if (!event.user.email_verified) {
+  const BACKEND_URL = "https://staging-api.socialsquad.ai";
+  const user = event.user || {};
+
+  // ========================================
+  // Check if user exists in backend
+  // ========================================
+  const isUserCreatedInBackend = user.app_metadata?.backend_user_created === true;
+
+  if (!isUserCreatedInBackend) {
+    // User doesn't exist in backend - create them (handles Google/social signups)
+    const connection = String(event.connection?.name || "");
+    const identities = Array.isArray(user.identities) ? user.identities : [];
+
+    const provider = identities.length > 0 ? identities[0].provider : "unknown";
+    const signup_method = connection !== "Username-Password-Authentication"
+      ? provider
+      : "email-password";
+
+    const userInfo = {
+      email: user.email,
+      auth0_user_id: user.user_id,
+      name: user.name,
+      signup_method: signup_method,
+      email_verified: user.email_verified,
+      auth0_created_at: user.created_at
+    };
+
+    try {
+      await axios.post(`${BACKEND_URL}/v1/users/`, userInfo, {
+        headers: {
+          Authorization: `Bearer ${event.secrets.backend_api_token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      // Mark user as created in backend
+      api.user.setAppMetadata("backend_user_created", true);
+      console.log("User creation callback success (from Post Login)");
+
+      // If email already verified (Google/social), mark verification as synced
+      if (user.email_verified) {
+        api.user.setAppMetadata("email_verification_notify_count", 1);
+      }
+
+      return;
+    } catch (error) {
+      if (error.response?.status === 409) {
+        // User already exists - just set the flag
+        api.user.setAppMetadata("backend_user_created", true);
+        console.log("User already exists in backend:", user.email);
+      } else {
+        console.error("Failed to create user in backend:", error.message);
+        return;
+      }
+    }
+  }
+
+  // ========================================
+  // Sync email verification status
+  // ========================================
+  if (!user.email_verified) {
     return;
   }
 
-  // Check notification count from app_metadata (retry up to 3 times)
-  const notificationCount = event.user.app_metadata?.email_verification_notify_count || 0;
+  const notificationCount = user.app_metadata?.email_verification_notify_count || 0;
 
   if (notificationCount >= 3) {
     return;
@@ -199,10 +297,8 @@ exports.onExecutePostLogin = async (event, api) => {
 
   try {
     await axios.post(
-      "https://api.socialsquad.ai/v1/users/verify-email",
-      {
-        auth0_user_id: event.user.user_id
-      },
+      `${BACKEND_URL}/v1/users/verify-email`,
+      { auth0_user_id: user.user_id },
       {
         headers: {
           Authorization: `Bearer ${event.secrets.backend_api_token}`,
@@ -211,12 +307,10 @@ exports.onExecutePostLogin = async (event, api) => {
       }
     );
 
-    // Increment count on success
     api.user.setAppMetadata("email_verification_notify_count", notificationCount + 1);
-    console.log(`Email verification synced (attempt ${notificationCount + 1}/3) for:`, event.user.email);
+    console.log(`Email verification callback success (attempt ${notificationCount + 1}/3)`);
   } catch (error) {
     console.error("Failed to sync email verification:", error.message);
-    // Don't increment on failure - will retry next login
   }
 };
 ```
@@ -225,9 +319,9 @@ exports.onExecutePostLogin = async (event, api) => {
 8. Go to **Actions** → **Flows** → **Login**
 9. Drag your action into the flow and **Apply**
 
-### Step 7: Create Auth0 Action - Block Unverified Email Logins (Optional but Recommended)
+### Step 7: Create Auth0 Action - Block Unverified Email Logins (Optional)
 
-This action blocks login attempts from users who haven't verified their email.
+**Purpose**: Block login for email/password users who haven't verified their email.
 
 1. Go to **Actions** → **Library** → **Build Custom**
 2. Name: `Login - Require Email Verification`
@@ -239,12 +333,11 @@ This action blocks login attempts from users who haven't verified their email.
  * Blocks login if email is not verified (for email/password signups only).
  */
 exports.onExecutePostLogin = async (event, api) => {
-  // Skip for social logins (they're pre-verified)
-  if (event.connection !== "Username-Password-Authentication") {
+  // Skip for social logins (they're pre-verified by Google/FB)
+  if (event.connection?.name !== "Username-Password-Authentication") {
     return;
   }
 
-  // Block if email not verified
   if (!event.user.email_verified) {
     api.access.deny("Please verify your email before logging in.");
   }
@@ -253,7 +346,7 @@ exports.onExecutePostLogin = async (event, api) => {
 
 5. Click **Deploy**
 6. Go to **Actions** → **Flows** → **Login**
-7. Drag this action **BEFORE** the email verification sync action
+7. Drag this action **BEFORE** the Post Login action
 8. **Apply**
 
 ## Backend API Endpoints
@@ -283,7 +376,7 @@ exports.onExecutePostLogin = async (event, api) => {
 
 ```
 email-password signup:  verification_pending → (verify email) → onboarding → active
-social signup (Google): onboarding → active
+social signup (Google): onboarding → active (email already verified by Google)
 ```
 
 ## Frontend Configuration
@@ -314,7 +407,7 @@ cd auth0-test-frontend
 python server.py 3000
 ```
 
-### 3. Test Flow
+### 3. Test Email/Password Flow
 
 1. Open http://localhost:3000
 2. Enter email and click "Continue with Email"
@@ -324,7 +417,27 @@ python server.py 3000
 6. Log in again
 7. You should see the dashboard
 
+### 4. Test Google OAuth Flow
+
+1. Open http://localhost:3000
+2. Click "Continue with Google"
+3. Complete Google sign-in
+4. You should be logged in directly (no email verification needed)
+
 ## Troubleshooting
+
+### User not created in backend (Google signup)
+- Check Auth0 Action logs: **Monitoring** → **Logs**
+- Look for "User creation callback success (from Post Login)"
+- Verify `backend_user_created` flag in user's `app_metadata`
+
+### User not created in backend (Email/Password signup)
+- Check Post User Registration action logs
+- Verify `backend_api_token` secret is set correctly
+
+### Email verification not syncing
+- Check `email_verification_notify_count` in user's `app_metadata`
+- Should increment up to 3, then stop
 
 ### "Authentication service unavailable"
 - Check `AUTH0_DOMAIN` is correct
@@ -332,20 +445,6 @@ python server.py 3000
 
 ### "Invalid token audience"
 - Ensure `AUTH0_AUDIENCE` matches the API identifier in Auth0
-
-### User not created in backend
-- Check Auth0 Action logs: **Monitoring** → **Logs**
-- Verify `backend_api_token` secret is set correctly
-- Check backend logs for errors
-
-### Email verification not syncing
-- Check Post Login action logs
-- Verify the action is deployed and in the Login flow
-- Check `email_verification_notify_count` in user's `app_metadata`
-
-### Resend verification email not working
-- Verify `AUTH0_MGMT_CLIENT_ID` and `AUTH0_MGMT_CLIENT_SECRET` are set
-- Check the Machine-to-Machine app has correct permissions
 
 ## Security Notes
 
