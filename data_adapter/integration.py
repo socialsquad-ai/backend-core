@@ -77,10 +77,19 @@ class Integration(BaseModel):
         if expires_at and expires_at.tzinfo is None:
             expires_at = expires_at.replace(tzinfo=timezone.utc)
 
+        is_active = True
+        if expires_at:
+             is_active = expires_at > now
+
         return {
+            "id": self.id,
             "uuid": str(self.uuid),
+            "user_id": self.user.id,
             "platform": self.platform,
-            "status": "active" if expires_at > now else "inactive",
+            "platform_user_id": self.platform_user_id,
+            "status": "active" if is_active else "inactive",
+            "is_active": is_active,
             "token_type": self.token_type,
             "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat() if self.updated_at else self.created_at.isoformat(),
         }
