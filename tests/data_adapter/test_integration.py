@@ -70,9 +70,15 @@ class TestIntegrationGetByPlatformUserId:
         mock_where.first.assert_called_once()
 
 
-class TestIntegrationCreateIntegration:
+class TestIntegrationCreateOrUpdateIntegration:
+    @patch.object(Integration, "select")
     @patch.object(Integration, "create")
-    def test_create_integration_with_all_params(self, mock_create):
+    def test_create_integration_with_all_params(self, mock_create, mock_select):
+        # Mock select to return nothing (new integration)
+        mock_select_result = MagicMock()
+        mock_select.return_value = mock_select_result
+        mock_select_result.where.return_value.first.return_value = None
+
         mock_user = Mock()
         mock_integration = Mock()
         mock_create.return_value = mock_integration
@@ -80,7 +86,7 @@ class TestIntegrationCreateIntegration:
         expires_at = datetime.now() + timedelta(hours=1)
         refresh_expires_at = datetime.now() + timedelta(days=60)
 
-        result = Integration.create_integration(
+        result = Integration.create_or_update_integration(
             user=mock_user,
             platform_user_id="platform_123",
             platform="instagram",
@@ -103,17 +109,24 @@ class TestIntegrationCreateIntegration:
             token_type="Bearer",
             scopes=["read", "write"],
             refresh_token_expires_at=refresh_expires_at,
+            platform_username=None,
         )
 
+    @patch.object(Integration, "select")
     @patch.object(Integration, "create")
-    def test_create_integration_without_refresh_token(self, mock_create):
+    def test_create_integration_without_refresh_token(self, mock_create, mock_select):
+        # Mock select to return nothing (new integration)
+        mock_select_result = MagicMock()
+        mock_select.return_value = mock_select_result
+        mock_select_result.where.return_value.first.return_value = None
+
         mock_user = Mock()
         mock_integration = Mock()
         mock_create.return_value = mock_integration
 
         expires_at = datetime.now() + timedelta(hours=1)
 
-        result = Integration.create_integration(
+        result = Integration.create_or_update_integration(
             user=mock_user,
             platform_user_id="youtube_123",
             platform="youtube",
@@ -127,6 +140,33 @@ class TestIntegrationCreateIntegration:
         call_kwargs = mock_create.call_args.kwargs
         assert call_kwargs["refresh_token"] is None
         assert call_kwargs["refresh_token_expires_at"] is None
+        assert call_kwargs["platform_username"] is None
+
+    @patch.object(Integration, "select")
+    def test_update_existing_integration(self, mock_select):
+        # Mock select to return an existing integration
+        mock_existing = MagicMock(spec=Integration)
+        mock_select_result = MagicMock()
+        mock_select.return_value = mock_select_result
+        mock_select_result.where.return_value.first.return_value = mock_existing
+
+        mock_user = Mock()
+        expires_at = datetime.now() + timedelta(hours=1)
+
+        result = Integration.create_or_update_integration(
+            user=mock_user,
+            platform_user_id="platform_123",
+            platform="instagram",
+            access_token="new_token",
+            expires_at=expires_at,
+            token_type="Bearer",
+            scopes=["read"],
+        )
+
+        assert result == mock_existing
+        assert mock_existing.access_token == "new_token"
+        assert mock_existing.user == mock_user
+        mock_existing.save.assert_called_once()
 
 
 class TestIntegrationGetDetails:
@@ -145,6 +185,7 @@ class TestIntegrationGetDetails:
         assert result["status"] == "active"
         assert result["token_type"] == "Bearer"
         assert result["created_at"] == "2024-01-01T12:00:00"
+        assert result["platform_username"] is None
 
     def test_get_details_with_expired_token(self):
         integration = Integration()

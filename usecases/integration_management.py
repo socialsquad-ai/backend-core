@@ -12,6 +12,7 @@ from config.env import (
     SSQ_CLIENT_WEB_URL,
     SSQ_CLIENT_MOBILE_URL,
 )
+from config.non_env import Platform
 from data_adapter.integration import Integration
 from data_adapter.user import User
 from logger.logging import LoggerUtil
@@ -83,63 +84,107 @@ class IntegrationManagement:
             return UNSUPPORTED_PLATFORM, None, [UNSUPPORTED_PLATFORM]
 
         try:
-            data = {
-                "client_id": config["client_id"],
-                "client_secret": config["client_secret"],
-                "code": code,
-                "grant_type": "authorization_code",
-                "redirect_uri": f"{SSQ_BASE_URL}/v1/integrations/{platform}/oauth/callback",
-            }
-            response = requests.post(config["token_url"], data=data)
-            response_data = response.json()
-            LoggerUtil.create_info_log(f"token response: {response_data}")
+            # 1. Exchange authorization code for access token
+            success, response_data, error = IntegrationManagement._exchange_code_for_token(platform, code, config)
+            if not success:
+                LoggerUtil.create_error_log(f"Error fetching access token: {response_data}")
+                return "Error fetching access token", None, [error]
 
-            state = json.loads(state)
-            auth0_user_id = state["user_id"]
-            interface_type = state["interface_type"]
-
-            user = User.get_by_auth0_user_id(auth0_user_id)
+            # 2. Parse state and get user
+            state_data = json.loads(state)
+            user = User.get_by_auth0_user_id(state_data.get("user_id"))
             if not user:
                 return USER_NOT_FOUND, None, [USER_NOT_FOUND]
 
-            # For handling expired access tokens
-            expires_in = response_data.get("expires_in", 3600)
-            expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+            # 3. Enrich data based on platform
+            if platform == Platform.INSTAGRAM.value:
+                response_data = IntegrationManagement._enrich_instagram_data(config, response_data)
+            elif platform == Platform.YOUTUBE.value:
+                response_data = IntegrationManagement._enrich_youtube_data(config, response_data)
 
-            # Refresh token is not available for all platforms so adding a check here
-            refresh_token_expires_at = None
-            refresh_token = response_data.get("refresh_token")
-            if refresh_token:
-                refresh_token_expires_in = response_data.get("refresh_token_expires_in", 604800)
-                refresh_token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=refresh_token_expires_in)
+            # 4. Prepare and save integration
+            token_data = IntegrationManagement._prepare_token_data(platform, user, response_data)
+            Integration.create_or_update_integration(**token_data)
 
-            # Handling scopes for different platforms
-            scopes = []
-            if platform == "youtube":
-                scopes = response_data["scope"].split(",")
-            elif platform == "instagram":
-                scopes = response_data["permissions"]
+            LoggerUtil.create_info_log(f"Integration for {platform} created/updated successfully")
 
-            token_data = {
-                "platform_user_id": response_data.get("user_id"),
-                "user": user,
-                "platform": platform,
-                "access_token": response_data["access_token"],
-                "expires_at": expires_at,
-                "refresh_token": refresh_token,
-                "refresh_token_expires_at": refresh_token_expires_at,
-                "token_type": response_data.get("token_type", "Bearer"),
-                "scopes": scopes,
-            }
+            redirect_url = SSQ_CLIENT_WEB_URL if state_data.get("interface_type") == "web" else SSQ_CLIENT_MOBILE_URL
+            return "", redirect_url, None
 
-            Integration.create_integration(**token_data)
-            LoggerUtil.create_info_log("Integration created successfully")
-            if interface_type == "web":
-                return "", SSQ_CLIENT_WEB_URL, None
-            return "", SSQ_CLIENT_MOBILE_URL, None
         except Exception as e:
             LoggerUtil.create_error_log(f"Error in handle_oauth_callback: {e}")
             return "Error in handle_oauth_callback", None, [str(e)]
+
+    @staticmethod
+    def _exchange_code_for_token(platform, code, config):
+        """Exchange the authorization code for an initial access token."""
+        data = {
+            "client_id": config["client_id"],
+            "client_secret": config["client_secret"],
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": f"{SSQ_BASE_URL}/v1/integrations/{platform}/oauth/callback",
+        }
+        response = requests.post(config["token_url"], data=data)
+        response_data = response.json()
+
+        if "access_token" not in response_data:
+            return False, response_data, response_data.get("error_message", "Unknown error")
+        return True, response_data, None
+
+    @staticmethod
+    def _enrich_instagram_data(config, response_data):
+        """Perform Instagram-specific token exchange and metadata fetching."""
+        # Exchange for a long-lived token
+        exchange_url = "https://graph.instagram.com/access_token"
+        exchange_params = {
+            "grant_type": "ig_exchange_token",
+            "client_secret": config["client_secret"],
+            "access_token": response_data["access_token"]
+        }
+        exchange_response = requests.get(exchange_url, params=exchange_params).json()
+
+        if "access_token" in exchange_response:
+            response_data.update(exchange_response)
+
+        # Fetch username
+        try:
+            user_info = requests.get("https://graph.instagram.com/me", params={
+                "fields": "id,username",
+                "access_token": response_data["access_token"]
+            }).json()
+            response_data["platform_username"] = user_info.get("username")
+        except Exception as e:
+            LoggerUtil.create_error_log(f"Failed to fetch Instagram username: {e}")
+
+        response_data["scopes"] = response_data.get("permissions", [])
+        return response_data
+
+    @staticmethod
+    def _enrich_youtube_data(config, response_data):
+        """Perform YouTube-specific metadata preparation."""
+        response_data["scopes"] = response_data.get("scope", "").split(",")
+        return response_data
+
+    @staticmethod
+    def _prepare_token_data(platform, user, response_data):
+        """Normalize token data for the Integration model."""
+        now = datetime.now(timezone.utc)
+        expires_in = int(response_data.get("expires_in", 3600))
+        refresh_expires_in = int(response_data.get("refresh_token_expires_in", 604800))
+
+        return {
+            "user": user,
+            "platform": platform,
+            "platform_user_id": response_data.get("user_id"),
+            "platform_username": response_data.get("platform_username"),
+            "access_token": response_data["access_token"],
+            "token_type": response_data.get("token_type", "Bearer"),
+            "expires_at": now + timedelta(seconds=expires_in),
+            "refresh_token": response_data.get("refresh_token"),
+            "refresh_token_expires_at": now + timedelta(seconds=refresh_expires_in) if response_data.get("refresh_token") else None,
+            "scopes": response_data.get("scopes", []),
+        }
 
     @staticmethod
     def delete_integration(integration_uuid):
