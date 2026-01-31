@@ -17,6 +17,7 @@ class Integration(BaseModel):
     token_type = CharField(max_length=50, null=False)
     scopes = JSONField(null=False)  # The scopes granted
     refresh_token_expires_at = DateTimeField(null=True)
+    platform_username = CharField(max_length=255, null=True)
 
     class Meta:
         db_table = "integrations"
@@ -45,7 +46,7 @@ class Integration(BaseModel):
         return cls.select_query().join(User).where(User.id == user_id, cls.platform == platform).first()
 
     @classmethod
-    def create_integration(
+    def create_or_update_integration(
         cls,
         user,
         platform_user_id,
@@ -56,7 +57,23 @@ class Integration(BaseModel):
         scopes,
         refresh_token=None,
         refresh_token_expires_at=None,
+        platform_username=None,
     ):
+        # We use select() instead of select_query() to include potentially soft-deleted integrations
+        integration = cls.select().where(cls.platform_user_id == platform_user_id, cls.platform == platform).first()
+        if integration:
+            integration.user = user
+            integration.access_token = access_token
+            integration.expires_at = expires_at
+            integration.token_type = token_type
+            integration.scopes = scopes
+            integration.refresh_token = refresh_token
+            integration.refresh_token_expires_at = refresh_token_expires_at
+            integration.platform_username = platform_username
+            integration.is_deleted = False
+            integration.save()
+            return integration
+
         return cls.create(
             user=user,
             platform_user_id=platform_user_id,
@@ -67,6 +84,7 @@ class Integration(BaseModel):
             token_type=token_type,
             scopes=scopes,
             refresh_token_expires_at=refresh_token_expires_at,
+            platform_username=platform_username,
         )
 
     def get_details(self):
@@ -87,6 +105,7 @@ class Integration(BaseModel):
             "user_id": self.user.id,
             "platform": self.platform,
             "platform_user_id": self.platform_user_id,
+            "platform_username": self.platform_username,
             "status": "active" if is_active else "inactive",
             "is_active": is_active,
             "token_type": self.token_type,
